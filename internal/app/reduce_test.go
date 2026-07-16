@@ -147,3 +147,54 @@ func TestSetSort(t *testing.T) {
 		t.Fatal("toggle dir")
 	}
 }
+
+func selected(t *testing.T) AppState {
+	s := NewState(501)
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 1)), s)
+	return s // first scan selects com.a
+}
+
+func TestRunActionDestructiveNeedsConfirm(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStop}, s)
+	if !s.PendingConfirm.Active || s.PendingConfirm.Target != "gui/501/com.a" {
+		t.Fatalf("stop should set pendingConfirm: %+v", s.PendingConfirm)
+	}
+	if s.ActionRunning {
+		t.Fatal("destructive action must not run before confirm")
+	}
+	s = Reduce(ConfirmAction{}, s)
+	if !s.ActionRunning || s.PendingConfirm.Active {
+		t.Fatalf("confirm should run + clear: %+v", s)
+	}
+}
+
+func TestRunActionNonDestructiveRuns(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStart}, s)
+	if !s.ActionRunning || s.PendingConfirm.Active {
+		t.Fatalf("start runs without confirm: %+v", s)
+	}
+}
+
+func TestSingleInFlightActionIgnored(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStart}, s) // now running
+	before := s
+	s = Reduce(RunAction{Action: launchctl.ActionRestart}, s)
+	if s.ActionRunning != before.ActionRunning || s.StatusMsg == "" {
+		t.Fatalf("second action must be ignored with a note: %+v", s)
+	}
+}
+
+func TestActionPickerPick(t *testing.T) {
+	s := selected(t)
+	s = Reduce(OpenActionPicker{}, s)
+	if !s.ActionPicker.Open {
+		t.Fatal("picker open")
+	}
+	s = Reduce(PickAction{Action: launchctl.ActionStart}, s)
+	if s.ActionPicker.Open || !s.ActionRunning {
+		t.Fatalf("pick dispatches + closes: %+v", s)
+	}
+}

@@ -75,8 +75,94 @@ func Reduce(m Msg, s AppState) AppState {
 			s.SortKey = (s.SortKey + 1) % 3
 		}
 		return s
+	case OpenActionPicker:
+		if s.Selected == "" || s.Gone {
+			return s
+		}
+		s.ActionPicker = ActionPicker{Open: true, HighlightedVerb: launchctl.ActionStart}
+		return s
+	case MoveActionPicker:
+		if s.ActionPicker.Open {
+			s.ActionPicker.HighlightedVerb = cyclePickerVerb(s.ActionPicker.HighlightedVerb, msg.Delta)
+		}
+		return s
+	case PickAction:
+		s.ActionPicker = ActionPicker{}
+		return reduceRunAction(msg.Action, s)
+	case CancelActionPicker:
+		s.ActionPicker = ActionPicker{}
+		return s
+	case RunAction:
+		return reduceRunAction(msg.Action, s)
+	case ConfirmAction:
+		if !s.PendingConfirm.Active {
+			return s
+		}
+		act := s.PendingConfirm.Action
+		s.PendingConfirm = PendingConfirm{}
+		return startAction(act, s)
+	case CancelAction:
+		s.PendingConfirm = PendingConfirm{}
+		return s
 	}
 	return s
+}
+
+// pickerVerbs is the picker order and matches the keymap shortcuts.
+var pickerVerbs = []launchctl.ActionKind{
+	launchctl.ActionStart, launchctl.ActionRestart, launchctl.ActionStop,
+	launchctl.ActionEnable, launchctl.ActionDisable, launchctl.ActionUnload,
+}
+
+func cyclePickerVerb(cur launchctl.ActionKind, delta int) launchctl.ActionKind {
+	idx := 0
+	for i, v := range pickerVerbs {
+		if v == cur {
+			idx = i
+		}
+	}
+	idx = (idx + delta + len(pickerVerbs)) % len(pickerVerbs)
+	return pickerVerbs[idx]
+}
+
+func busy(s AppState) bool {
+	return s.ActionRunning || s.PendingSudo.Active || s.PendingConfirm.Active
+}
+
+func reduceRunAction(a launchctl.ActionKind, s AppState) AppState {
+	if s.Selected == "" || s.Gone {
+		return s
+	}
+	if busy(s) {
+		s.StatusMsg = "action already running"
+		return s
+	}
+	if a.Destructive() {
+		s.PendingConfirm = PendingConfirm{
+			Active: true, Action: a,
+			Target: targetOf(s),
+		}
+		return s
+	}
+	return startAction(a, s)
+}
+
+// startAction marks the action in-flight; the Cmd that actually runs launchctl is
+// built by the ui layer from ActionRunning + Selected (see Phase 4).
+func startAction(a launchctl.ActionKind, s AppState) AppState {
+	s.ActionRunning = true
+	s.StatusMsg = a.String() + "…"
+	s.pendingAction = a // stored so ui knows which verb to run
+	return s
+}
+
+func targetOf(s AppState) string {
+	for _, sv := range s.Services {
+		if sv.Label == s.Selected {
+			return sv.Domain.Target(sv.Label)
+		}
+	}
+	return s.Selected
 }
 
 func clampMin0(n int) int {

@@ -116,12 +116,15 @@ type AppState struct {
 	PendingSudo    PendingSudo
 	LoadPrompt     LoadPrompt
 	ActionRunning  bool
+	pendingAction  launchctl.ActionKind // verb behind ActionRunning; read via PendingAction()
 
 	FirstScanDone     bool
 	SelectionResolved bool
 
 	UID int
 }
+
+func (s AppState) PendingAction() launchctl.ActionKind { return s.pendingAction }
 
 const logRingCap = 5000
 
