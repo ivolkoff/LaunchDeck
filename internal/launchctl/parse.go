@@ -48,3 +48,51 @@ func parseDomainScan(dump string, d Domain) ([]Service, error) {
 	}
 	return out, sc.Err()
 }
+
+// parseServiceDetail best-effort-parses a `launchctl print <domain>/<label>`
+// dump. It never errors: Raw always holds the full dump so the UI can fall back
+// to it when a field is missing or the format drifts.
+func parseServiceDetail(dump string, svc Service) ServiceDetail {
+	d := ServiceDetail{Service: svc, Raw: dump, EnableState: EnableUnknown}
+	sc := bufio.NewScanner(strings.NewReader(dump))
+	inArgs := false
+	for sc.Scan() {
+		line := sc.Text()
+		trimmed := strings.TrimSpace(line)
+		if inArgs {
+			if trimmed == "}" {
+				inArgs = false
+				continue
+			}
+			if trimmed != "" {
+				d.Args = append(d.Args, trimmed)
+			}
+			continue
+		}
+		if trimmed == "arguments = {" {
+			inArgs = true
+			continue
+		}
+		key, val, ok := strings.Cut(trimmed, " = ")
+		if !ok {
+			continue
+		}
+		switch key {
+		case "path":
+			d.PlistPath = val
+		case "program":
+			d.Program = val
+		case "stdout path":
+			d.StdoutPath = val
+		case "stderr path":
+			d.StderrPath = val
+		case "disabled":
+			if val == "true" {
+				d.EnableState = Disabled
+			} else if val == "false" {
+				d.EnableState = Enabled
+			}
+		}
+	}
+	return d
+}

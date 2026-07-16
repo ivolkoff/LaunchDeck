@@ -45,3 +45,50 @@ func TestParseDomainScanNoServicesBlock(t *testing.T) {
 		t.Fatal("expected error when services block absent")
 	}
 }
+
+const detailFixture = `com.example.running = {
+	active count = 1
+	path = /Users/me/Library/LaunchAgents/com.example.running.plist
+	state = running
+	program = /usr/local/bin/agent
+	arguments = {
+		/usr/local/bin/agent
+		--serve
+	}
+	pid = 12345
+	last exit code = 0
+	stdout path = /tmp/agent.out
+	stderr path = /tmp/agent.err
+	disabled = false
+}
+`
+
+func TestParseServiceDetail(t *testing.T) {
+	base := Service{Label: "com.example.running", Domain: GUIDomain(501), PID: 12345, HasPID: true}
+	d := parseServiceDetail(detailFixture, base)
+	if d.Program != "/usr/local/bin/agent" {
+		t.Fatalf("program: %q", d.Program)
+	}
+	if len(d.Args) != 2 || d.Args[1] != "--serve" {
+		t.Fatalf("args: %#v", d.Args)
+	}
+	if d.PlistPath != "/Users/me/Library/LaunchAgents/com.example.running.plist" {
+		t.Fatalf("plist: %q", d.PlistPath)
+	}
+	if d.StdoutPath != "/tmp/agent.out" || d.StderrPath != "/tmp/agent.err" {
+		t.Fatalf("log paths: %q %q", d.StdoutPath, d.StderrPath)
+	}
+	if d.EnableState != Enabled {
+		t.Fatalf("enableState: %v", d.EnableState)
+	}
+	if d.Raw != detailFixture {
+		t.Fatal("raw not preserved verbatim")
+	}
+}
+
+func TestParseServiceDetailDisabled(t *testing.T) {
+	d := parseServiceDetail("x = {\n\tdisabled = true\n}\n", Service{Label: "x"})
+	if d.EnableState != Disabled {
+		t.Fatalf("want Disabled, got %v", d.EnableState)
+	}
+}
