@@ -143,6 +143,8 @@ func Reduce(m Msg, s AppState) AppState {
 	case ActionResult:
 		s.ActionRunning = false
 		s.loadTarget = loadTarget{}
+		s.PendingSudo = PendingSudo{}
+		s.SudoConfirmed = false
 		if msg.TimedOut {
 			s.StatusMsg = msg.Action.String() + " timed out"
 			return s

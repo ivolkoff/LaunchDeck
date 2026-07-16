@@ -212,6 +212,20 @@ func TestActionResultPermissionSetsSudo(t *testing.T) {
 	}
 }
 
+func TestActionResultClearsPendingSudoAfterRetry(t *testing.T) {
+	s := selected(t)
+	s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: "gui/501/com.a"}
+	s.SudoConfirmed = true
+	s.ActionRunning = true
+	s = Reduce(ActionResult{
+		Action: launchctl.ActionStart, Target: "gui/501/com.a",
+		Outcome: launchctl.ActionOutcome{ExitCode: 0},
+	}, s)
+	if s.PendingSudo.Active || s.SudoConfirmed || s.ActionRunning {
+		t.Fatalf("confirmed sudo retry's result should clear pendingSudo+confirmed+running: %+v", s)
+	}
+}
+
 func TestActionResultLoadPermissionNoSudo(t *testing.T) {
 	s := selected(t)
 	s.ActionRunning = true

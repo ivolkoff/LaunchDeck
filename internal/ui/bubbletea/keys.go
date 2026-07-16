@@ -72,6 +72,10 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.applyIntent(app.OpenLoadPrompt{})
 	case "r":
 		return m, pollCmd(m.client, m.st.UID)
+	case "ctrl+u":
+		return m.applyIntent(app.ScrollMsg{Panel: st.Focus, Delta: -10})
+	case "ctrl+d":
+		return m.applyIntent(app.ScrollMsg{Panel: st.Focus, Delta: 10})
 	}
 	return m, nil
 }

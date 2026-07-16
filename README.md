@@ -33,11 +33,12 @@ otherwise.
 |---------------------------|------------------------------------------------------|
 | `↑`/`k`, `↓`/`j`          | focus=sidebar: move selection; focus=detail: scroll detail |
 | `Home` / `End`            | first / last visible row                            |
-| `PgUp` / `PgDn`           | move selection one viewport up / down               |
+| `PgUp` / `PgDn`           | move selection ±one page (10 rows)                  |
 | `Tab`                     | toggle focus sidebar ↔ detail                       |
 | `1` / `2` / `3`           | detail tab: Metadata / Logs / Raw                   |
 | `←` / `→`                 | cycle detail tab (prev/next)                        |
-| `Ctrl-U` / `Ctrl-D`, wheel| scroll focused panel (half viewport / 3 lines)      |
+| `Ctrl-U` / `Ctrl-D`      | scroll the focused panel (±10 lines)                 |
+| mouse wheel               | scroll the focused panel (±3 lines)                 |
 | `a`                       | open the action picker for the selected service     |
 | `y`/`Enter`, `n`/`Esc`    | confirm / cancel whichever prompt is open (destructive confirm or sudo-retry) |
 | `/`                       | open the text filter                                |
@@ -45,7 +46,7 @@ otherwise.
 | `s` / `S`                 | cycle sort key / toggle sort direction              |
 | `L`                       | open the load (bootstrap) plist-path prompt         |
 | `r`                       | manual refresh                                      |
-| `q`                       | save session and quit                               |
+| `q`, `Ctrl-C`             | save session and quit                               |
 
 Inside the action picker: `s` Start, `r` Restart, `k` Stop, `e` Enable,
 `d` Disable, `u` Unload; `↑`/`↓` move the highlight, `Enter` picks it, `Esc`
