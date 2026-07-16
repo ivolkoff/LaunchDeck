@@ -8,16 +8,16 @@ import (
 
 	"github.com/volkoffskij/launchdeck/internal/app"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/volkoffskij/launchdeck/internal/session"
 )
 
 type Model struct {
-	st       app.AppState
-	client   *launchctl.Client
-	width    int
-	height   int
-	pollBusy bool
-	saveAt   time.Time // debounce marker
-	dirty    bool
+	st        app.AppState
+	client    *launchctl.Client
+	width     int
+	height    int
+	pollBusy  bool
+	lastSaved session.Session // debounce marker: last state written to disk
 }
 
 func New(st app.AppState, c *launchctl.Client) Model {
@@ -67,15 +67,74 @@ func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 		m.pollBusy = false
 	}
 	m.st = app.Reduce(msg, m.st)
-	cmds := m.followUps(msg, prevSel)
-	m.maybeSave()
+	cmds := (&m).followUps(msg, prevSel)
+	(&m).maybeSave()
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) selectedService() (launchctl.Domain, string, bool) {
+	for _, s := range m.st.Services {
+		if s.Label == m.st.Selected {
+			return s.Domain, s.Label, true
+		}
+	}
+	return launchctl.Domain{}, "", false
+}
+
+// followUps fires the Cmds implied by the new state: a detail re-fetch when
+// selection changes, the launchctl Cmd behind a just-started action, and a
+// detail re-fetch after that action completes on the selected service.
+func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
+	var cmds []tea.Cmd
+	// Selection changed to a present, non-gone service → fetch detail.
+	if m.st.Selected != prevSel && m.st.Selected != "" && !m.st.Gone {
+		if d, label, ok := m.selectedService(); ok {
+			cmds = append(cmds, detailCmd(m.client, d, label))
+		}
+	}
+	// A run just started (ActionRunning flipped by reduce): fire the launchctl Cmd.
+	if m.st.ActionRunning && !actionAlreadyDispatched(msg) {
+		if d, plist, ok := m.st.LoadTarget(); ok {
+			cmds = append(cmds, bootstrapCmd(m.client, d, plist))
+		} else if d, label, ok := m.selectedService(); ok {
+			cmds = append(cmds, actionCmd(m.client, m.st.PendingAction(), d, label))
+		}
+	}
+	// After an action on the selected service, re-fetch its detail (~2s freshness).
+	if ar, ok := msg.(app.ActionResult); ok && !m.st.ActionRunning {
+		if d, label, ok := m.selectedService(); ok && d.Target(label) == ar.Target {
+			cmds = append(cmds, detailCmd(m.client, d, label))
+		}
+	}
+	return cmds
+}
+
+// actionAlreadyDispatched avoids re-firing the Cmd on the same message that set
+// ActionRunning=true when that message is itself the ActionResult finishing it.
+func actionAlreadyDispatched(msg app.Msg) bool {
+	switch msg.(type) {
+	case app.ActionResult, app.ServicesLoaded, app.ServiceDetailLoaded, app.LogLinesAppended:
+		return true
+	default:
+		return false
+	}
+}
+
+// maybeSave persists the session, debounced by comparing against the last
+// saved snapshot so unrelated ticks/messages don't trigger disk writes.
+func (m *Model) maybeSave() {
+	next := app.ToSession(m.st)
+	if next == m.lastSaved {
+		return
+	}
+	m.lastSaved = next
+	if p, err := session.Path(); err == nil {
+		_ = session.Save(p, next) // best-effort; a save error is non-fatal
+	}
 }
 
 // --- Temporary stubs; replaced by later tasks. ---
 
-func (m Model) followUps(app.Msg, string) []tea.Cmd           { return nil }
-func (m Model) maybeSave()                                    {}
 func (m Model) handleKey(tea.KeyMsg) (tea.Model, tea.Cmd)     { return m, nil }
 func (m Model) handleMouse(tea.MouseMsg) (tea.Model, tea.Cmd) { return m, nil }
 func (m Model) View() string                                  { return "" }
