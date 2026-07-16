@@ -87,6 +87,10 @@ func parseServiceDetail(dump string, svc Service) ServiceDetail {
 			d.StdoutPath = val
 		case "stderr path":
 			d.StderrPath = val
+		case "pid":
+			if pid, err := strconv.Atoi(val); err == nil {
+				d.PID, d.HasPID = pid, true
+			}
 		case "disabled":
 			if val == "true" {
 				d.EnableState = Disabled
