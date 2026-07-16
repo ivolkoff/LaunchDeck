@@ -161,4 +161,4 @@ func (m *Model) maybeSave() {
 
 func (m Model) handleKey(tea.KeyMsg) (tea.Model, tea.Cmd)     { return m, nil }
 func (m Model) handleMouse(tea.MouseMsg) (tea.Model, tea.Cmd) { return m, nil }
-func (m Model) View() string                                  { return "" }
+func (m Model) View() string                                  { return m.render() }
