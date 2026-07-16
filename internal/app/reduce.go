@@ -45,6 +45,36 @@ func Reduce(m Msg, s AppState) AppState {
 			s.Scroll.Log = clampMin0(s.Scroll.Log + msg.Delta)
 		}
 		return s
+	case OpenFilter:
+		s.FilterEditing = true
+		s.FilterBuffer = s.Filters.TextPattern
+		return s
+	case SetFilterBuffer:
+		s.FilterBuffer = msg.Buffer
+		return s
+	case CommitFilter:
+		s.FilterEditing = false
+		f := s.Filters
+		f.TextPattern = s.FilterBuffer
+		return Reduce(SetFilter{Filters: f}, s)
+	case CancelFilter:
+		s.FilterEditing = false
+		s.FilterBuffer = ""
+		return s
+	case CycleDomainScope:
+		f := s.Filters
+		f.DomainScope = (f.DomainScope + 1) % 3
+		return Reduce(SetFilter{Filters: f}, s)
+	case SetFilter:
+		s.Filters = msg.Filters
+		return s
+	case SetSort:
+		if msg.ToggleDir {
+			s.SortDesc = !s.SortDesc
+		} else {
+			s.SortKey = (s.SortKey + 1) % 3
+		}
+		return s
 	}
 	return s
 }

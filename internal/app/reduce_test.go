@@ -102,3 +102,48 @@ func TestFocusAndTab(t *testing.T) {
 		t.Fatal("set tab")
 	}
 }
+
+func TestFilterEditCommit(t *testing.T) {
+	s := NewState(501)
+	s.Filters.TextPattern = "old"
+	s = Reduce(OpenFilter{}, s)
+	if !s.FilterEditing || s.FilterBuffer != "old" {
+		t.Fatalf("open seeds buffer: %+v", s)
+	}
+	s = Reduce(SetFilterBuffer{Buffer: "new"}, s)
+	s = Reduce(CommitFilter{}, s)
+	if s.FilterEditing || s.Filters.TextPattern != "new" {
+		t.Fatalf("commit: %+v", s)
+	}
+}
+
+func TestFilterCancelRestores(t *testing.T) {
+	s := NewState(501)
+	s.Filters.TextPattern = "keep"
+	s = Reduce(OpenFilter{}, s)
+	s = Reduce(SetFilterBuffer{Buffer: "typed"}, s)
+	s = Reduce(CancelFilter{}, s)
+	if s.FilterEditing || s.Filters.TextPattern != "keep" {
+		t.Fatalf("cancel: %+v", s)
+	}
+}
+
+func TestCycleDomainScope(t *testing.T) {
+	s := NewState(501) // ScopeAll
+	s = Reduce(CycleDomainScope{}, s)
+	if s.Filters.DomainScope != ScopeUser { // all → user → system → all
+		t.Fatalf("cycle from all: %v", s.Filters.DomainScope)
+	}
+}
+
+func TestSetSort(t *testing.T) {
+	s := NewState(501) // SortLabel asc
+	s = Reduce(SetSort{}, s)
+	if s.SortKey != SortStatus {
+		t.Fatalf("cycle key: %v", s.SortKey)
+	}
+	s = Reduce(SetSort{ToggleDir: true}, s)
+	if !s.SortDesc {
+		t.Fatal("toggle dir")
+	}
+}
