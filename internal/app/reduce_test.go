@@ -237,3 +237,51 @@ func TestCancelSudoClears(t *testing.T) {
 		t.Fatal("cancel clears sudo")
 	}
 }
+
+func TestDetailLoadedCurrentVsStale(t *testing.T) {
+	s := selected(t) // com.a selected, loadState Loading? (loaded() path sets it via first-scan? no)
+	s.Detail.LoadState = DetailLoading
+	det := launchctl.ServiceDetail{Service: launchctl.Service{Label: "com.a"}, Program: "/bin/x"}
+	s = Reduce(ServiceDetailLoaded{Target: "gui/501/com.a", Detail: det}, s)
+	if s.Detail.LoadState != DetailReady || s.Detail.Metadata.Program != "/bin/x" {
+		t.Fatalf("current detail should load: %+v", s.Detail)
+	}
+	// stale target dropped
+	s2 := selected(t)
+	s2.Detail.LoadState = DetailLoading
+	s2 = Reduce(ServiceDetailLoaded{Target: "gui/501/OTHER", Detail: det}, s2)
+	if s2.Detail.LoadState != DetailLoading {
+		t.Fatal("stale detail must be dropped")
+	}
+}
+
+func TestLogLinesRingCap(t *testing.T) {
+	s := selected(t)
+	s.TailIdentity = "gui/501/com.a"
+	big := make([]LogLine, logRingCap+10)
+	for i := range big {
+		big[i] = LogLine{Stream: "out", Text: "x"}
+	}
+	s = Reduce(LogLinesAppended{TailTarget: "gui/501/com.a", Lines: big}, s)
+	if len(s.LogRing) != logRingCap {
+		t.Fatalf("ring should cap at %d, got %d", logRingCap, len(s.LogRing))
+	}
+}
+
+func TestLogLinesStaleDropped(t *testing.T) {
+	s := selected(t)
+	s.TailIdentity = "gui/501/com.a"
+	s = Reduce(LogLinesAppended{TailTarget: "gui/501/OLD", Lines: []LogLine{{Text: "x"}}}, s)
+	if len(s.LogRing) != 0 {
+		t.Fatal("stale tail lines must be dropped")
+	}
+}
+
+func TestServicesLoadedNeverClobbersSudo(t *testing.T) {
+	s := selected(t)
+	s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: "gui/501/com.a"}
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 5)), s)
+	if !s.PendingSudo.Active {
+		t.Fatal("ServicesLoaded must not clobber pendingSudo")
+	}
+}

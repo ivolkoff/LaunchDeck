@@ -134,6 +134,33 @@ func Reduce(m Msg, s AppState) AppState {
 		s.SudoConfirmed = false
 		s.StatusMsg = ""
 		return s
+	case ServiceDetailLoaded:
+		if msg.Target != targetOf(s) {
+			return s // superseded / stale
+		}
+		if msg.Err != nil {
+			s.Detail.LoadState = DetailError
+			if msg.Err.Kind == launchctl.FailurePermission {
+				s.Detail.ErrMsg = "requires sudo to inspect"
+			} else {
+				s.Detail.ErrMsg = msg.Err.Stderr
+			}
+			return s
+		}
+		s.Detail.LoadState = DetailReady
+		s.Detail.Metadata = msg.Detail
+		s.Detail.Raw = msg.Detail.Raw
+		s.Detail.ErrMsg = ""
+		return s
+	case LogLinesAppended:
+		if msg.TailTarget != targetOf(s) {
+			return s
+		}
+		s.LogRing = append(s.LogRing, msg.Lines...)
+		if len(s.LogRing) > logRingCap {
+			s.LogRing = s.LogRing[len(s.LogRing)-logRingCap:]
+		}
+		return s
 	}
 	return s
 }
