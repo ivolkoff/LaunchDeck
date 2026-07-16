@@ -41,24 +41,3 @@ func sudoInspectCmd(d launchctl.Domain, label string) tea.Cmd {
 		return app.ServiceDetailLoaded{Target: target, Detail: launchctl.ParseDetail(out.String(), launchctl.Service{Label: label, Domain: d})}
 	}
 }
-
-// sudoEnumerateCmd captures stdout of `sudo launchctl print system` (sudo
-// prompts on the tty, not stdout). It returns only the parsed system rows;
-// the next normal poll re-merges them with the GUI-domain rows.
-func sudoEnumerateCmd() tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		cmd := exec.CommandContext(ctx, "sudo", "launchctl", "print", "system")
-		var out, errb bytes.Buffer
-		cmd.Stdout, cmd.Stderr = &out, &errb
-		if err := cmd.Run(); err != nil {
-			return app.ServicesLoaded{Err: &launchctl.ScanError{Kind: launchctl.FailureGeneric, Stderr: errb.String()}}
-		}
-		svcs, err := launchctl.ParseScan(out.String(), launchctl.SystemDomain())
-		if err != nil {
-			return app.ServicesLoaded{Err: &launchctl.ScanError{Kind: launchctl.FailureGeneric, Stderr: err.Error()}}
-		}
-		return app.ServicesLoaded{Services: svcs}
-	}
-}

@@ -2,6 +2,8 @@ package bubbletea
 
 import (
 	"context"
+	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -103,7 +105,7 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 	// A run just started (ActionRunning flipped by reduce): fire the launchctl Cmd.
 	if m.st.ActionRunning && !actionAlreadyDispatched(msg) {
 		if d, plist, ok := m.st.LoadTarget(); ok {
-			cmds = append(cmds, bootstrapCmd(m.client, d, plist))
+			cmds = append(cmds, bootstrapCmd(m.client, d, expandHome(plist)))
 		} else if d, label, ok := m.selectedService(); ok {
 			cmds = append(cmds, actionCmd(m.client, m.st.PendingAction(), d, label))
 		}
@@ -126,8 +128,6 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 			if d, label, ok := m.selectedService(); ok {
 				cmds = append(cmds, sudoInspectCmd(d, label))
 			}
-		case app.SudoEnumerate:
-			cmds = append(cmds, sudoEnumerateCmd())
 		}
 	}
 	return cmds
@@ -168,3 +168,20 @@ func (m *Model) maybeSaveFinal() {
 // --- Temporary stubs; replaced by later tasks. ---
 
 func (m Model) View() string { return m.render() }
+
+// expandHome expands a leading "~" or "~/" to the user's home directory:
+// exec.Command does not do shell tilde-expansion, so a literal "~/..." path
+// passed straight to launchctl fails with ENOENT.
+func expandHome(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+	if path == "~" {
+		return home
+	}
+	if strings.HasPrefix(path, "~/") {
+		return home + path[1:]
+	}
+	return path
+}

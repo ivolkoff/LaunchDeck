@@ -179,6 +179,7 @@ func Reduce(m Msg, s AppState) AppState {
 		s.PendingSudo = PendingSudo{}
 		s.SudoConfirmed = false
 		s.StatusMsg = ""
+		s.ActionRunning = false
 		return s
 	case ServiceDetailLoaded:
 		if msg.Target != targetOf(s) {
@@ -188,6 +189,7 @@ func Reduce(m Msg, s AppState) AppState {
 			s.Detail.LoadState = DetailError
 			if msg.Err.Kind == launchctl.FailurePermission {
 				s.Detail.ErrMsg = "requires sudo to inspect"
+				s.PendingSudo = PendingSudo{Active: true, Kind: SudoInspect, Target: msg.Target}
 			} else {
 				s.Detail.ErrMsg = msg.Err.Stderr
 			}
@@ -197,6 +199,9 @@ func Reduce(m Msg, s AppState) AppState {
 		s.Detail.Metadata = msg.Detail
 		s.Detail.Raw = msg.Detail.Raw
 		s.Detail.ErrMsg = ""
+		// A successful inspect concludes any pending sudo retry.
+		s.PendingSudo = PendingSudo{}
+		s.SudoConfirmed = false
 		return s
 	case LogLinesAppended:
 		if msg.TailTarget != targetOf(s) {
@@ -318,7 +323,7 @@ func reduceMove(m MoveSelection, s AppState) AppState {
 func reduceServicesLoaded(msg ServicesLoaded, s AppState) AppState {
 	if msg.Err != nil {
 		if msg.Err.Kind == launchctl.FailurePermission {
-			s.StatusMsg = "system requires sudo to enumerate — Retry with sudo"
+			s.StatusMsg = "system services need root to enumerate (run launchdeck with sudo to see them)"
 		} else {
 			s.StatusMsg = "failed to parse services"
 		}

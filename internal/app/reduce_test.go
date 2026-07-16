@@ -269,6 +269,16 @@ func TestCancelSudoClears(t *testing.T) {
 	}
 }
 
+func TestCancelSudoClearsActionRunning(t *testing.T) {
+	s := selected(t)
+	s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: "gui/501/com.a"}
+	s.ActionRunning = true
+	s = Reduce(CancelSudo{}, s)
+	if s.PendingSudo.Active || s.ActionRunning {
+		t.Fatalf("cancel should clear pendingSudo + actionRunning: %+v", s)
+	}
+}
+
 func TestDetailLoadedCurrentVsStale(t *testing.T) {
 	s := selected(t) // com.a selected, loadState Loading? (loaded() path sets it via first-scan? no)
 	s.Detail.LoadState = DetailLoading
@@ -324,6 +334,30 @@ func TestDetailLoadedError(t *testing.T) {
 	}, s2)
 	if s2.Detail.LoadState != DetailError || s2.Detail.ErrMsg != "boom" {
 		t.Fatalf("generic error should surface stderr: %+v", s2.Detail)
+	}
+}
+
+func TestServiceDetailPermissionArmsSudoInspect(t *testing.T) {
+	s := selected(t)
+	s.Detail.LoadState = DetailLoading
+	s = Reduce(ServiceDetailLoaded{
+		Target: targetOf(s),
+		Err:    &launchctl.ScanError{Kind: launchctl.FailurePermission, Stderr: "denied"},
+	}, s)
+	if !s.PendingSudo.Active || s.PendingSudo.Kind != SudoInspect {
+		t.Fatalf("permission error should arm sudo inspect retry: %+v", s.PendingSudo)
+	}
+}
+
+func TestServiceDetailSuccessClearsSudo(t *testing.T) {
+	s := selected(t)
+	s.Detail.LoadState = DetailLoading
+	s.PendingSudo = PendingSudo{Active: true, Kind: SudoInspect, Target: targetOf(s)}
+	s.SudoConfirmed = true
+	det := launchctl.ServiceDetail{Service: launchctl.Service{Label: "com.a"}, Program: "/bin/x"}
+	s = Reduce(ServiceDetailLoaded{Target: targetOf(s), Detail: det}, s)
+	if s.PendingSudo.Active || s.SudoConfirmed {
+		t.Fatalf("successful detail load should clear pending sudo: %+v", s)
 	}
 }
 
