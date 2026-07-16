@@ -92,3 +92,27 @@ func TestParseServiceDetailDisabled(t *testing.T) {
 		t.Fatalf("want Disabled, got %v", d.EnableState)
 	}
 }
+
+func TestClassifyFailure(t *testing.T) {
+	cases := []struct {
+		exit   int
+		stderr string
+		want   FailureKind
+	}{
+		{0, "anything", FailureGeneric},                       // exit 0 is never a failure
+		{1, "Operation not permitted", FailurePermission},
+		{1, "permission denied", FailurePermission},
+		{1, "Bootstrap failed: 5: Input/output error", FailureGeneric},
+		{1, "Could not find service (errno 1)", FailurePermission},
+		{1, "failed (errno 13)", FailurePermission},
+		{1, "failed (errno 12)", FailureGeneric},
+		{1, "failed (errno 19)", FailureGeneric},
+		{1, "failed (errno 100)", FailureGeneric},
+		{1, "service is not privileged", FailurePermission},
+	}
+	for _, c := range cases {
+		if got := ClassifyFailure(c.exit, c.stderr); got != c.want {
+			t.Errorf("Classify(%d,%q) = %v, want %v", c.exit, c.stderr, got, c.want)
+		}
+	}
+}

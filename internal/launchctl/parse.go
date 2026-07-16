@@ -3,6 +3,7 @@ package launchctl
 import (
 	"bufio"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -95,4 +96,38 @@ func parseServiceDetail(dump string, svc Service) ServiceDetail {
 		}
 	}
 	return d
+}
+
+type FailureKind int
+
+const (
+	FailureGeneric FailureKind = iota
+	FailurePermission
+)
+
+var errnoPermRe = regexp.MustCompile(`\berrno (1|13)\b`)
+
+var permPhrases = []string{
+	"operation not permitted",
+	"permission denied",
+	"not privileged",
+	"requires root",
+}
+
+// ClassifyFailure decides whether a non-zero launchctl result is a permission
+// failure (→ offer sudo retry) or a generic one (→ show stderr).
+func ClassifyFailure(exitCode int, stderr string) FailureKind {
+	if exitCode == 0 {
+		return FailureGeneric
+	}
+	low := strings.ToLower(stderr)
+	for _, p := range permPhrases {
+		if strings.Contains(low, p) {
+			return FailurePermission
+		}
+	}
+	if errnoPermRe.MatchString(low) {
+		return FailurePermission
+	}
+	return FailureGeneric
 }
