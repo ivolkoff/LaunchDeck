@@ -31,14 +31,14 @@ otherwise.
 
 | Key                       | Effect                                              |
 |---------------------------|------------------------------------------------------|
-| `↑`/`k`, `↓`/`j`          | focus=sidebar: move selection; focus=detail: scroll detail |
+| `↑`/`k`, `↓`/`j`          | focus=sidebar: move selection (list scrolls to keep it in view); focus=detail: scroll Logs/Raw |
 | `Home` / `End`            | first / last visible row                            |
 | `PgUp` / `PgDn`           | move selection ±one page (10 rows)                  |
 | `Tab`                     | toggle focus sidebar ↔ detail                       |
 | `1` / `2` / `3`           | detail tab: Metadata / Logs / Raw                   |
 | `←` / `→`                 | cycle detail tab (prev/next)                        |
-| `Ctrl-U` / `Ctrl-D`      | scroll the focused panel (±10 lines)                 |
-| mouse wheel               | scroll the focused panel (±3 lines)                 |
+| `Ctrl-U` / `Ctrl-D`      | scroll the detail panel's Logs/Raw body (±10 lines)  |
+| mouse wheel over detail   | scroll the detail panel's Logs/Raw body (±3 lines)  |
 | `a`                       | open the action picker for the selected service     |
 | `y`/`Enter`, `n`/`Esc`    | confirm / cancel whichever prompt is open (destructive confirm or sudo-retry) |
 | `/`                       | open the text filter                                |

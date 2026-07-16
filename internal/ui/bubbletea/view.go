@@ -23,7 +23,7 @@ func (m Model) render() string {
 	bodyH := m.height - 1 // status row
 
 	sidebar := renderList(vm.List, sidebarW, bodyH, m.st.Focus == app.FocusSidebar)
-	detail := renderDetail(vm.Detail, detailW, bodyH)
+	detail := renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, " ", detail)
 	status := renderStatus(vm.Status, m.width)
 	return zone.Scan(lipgloss.JoinVertical(lipgloss.Left, body, status))
