@@ -152,6 +152,13 @@ func Reduce(m Msg, s AppState) AppState {
 			return s
 		}
 		if msg.Outcome.Kind == launchctl.FailurePermission {
+			// A load's sudo retry would rebuild from pendingAction (stale) + the
+			// selected service — the wrong command against the wrong target. Fail
+			// plainly instead of offering a broken retry.
+			if msg.Action == launchctl.ActionLoad {
+				s.StatusMsg = "load failed (permission denied) — system daemons must be loaded with elevated privileges"
+				return s
+			}
 			s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: msg.Target}
 			s.StatusMsg = msg.Action.String() + " needs sudo — Retry with sudo"
 			return s

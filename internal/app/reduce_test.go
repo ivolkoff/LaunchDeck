@@ -212,6 +212,22 @@ func TestActionResultPermissionSetsSudo(t *testing.T) {
 	}
 }
 
+func TestActionResultLoadPermissionNoSudo(t *testing.T) {
+	s := selected(t)
+	s.ActionRunning = true
+	s = Reduce(ActionResult{
+		Action:  launchctl.ActionLoad,
+		Outcome: launchctl.ActionOutcome{ExitCode: 1, Stderr: "Operation not permitted", Kind: launchctl.FailurePermission},
+	}, s)
+	if s.PendingSudo.Active {
+		t.Fatalf("load permission failure must not offer sudo retry: %+v", s)
+	}
+	want := "load failed (permission denied) — system daemons must be loaded with elevated privileges"
+	if s.StatusMsg != want {
+		t.Fatalf("StatusMsg = %q, want %q", s.StatusMsg, want)
+	}
+}
+
 func TestActionResultTimeout(t *testing.T) {
 	s := selected(t)
 	s = Reduce(RunAction{Action: launchctl.ActionStart}, s)
