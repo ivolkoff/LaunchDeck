@@ -99,7 +99,7 @@ func TestClassifyFailure(t *testing.T) {
 		stderr string
 		want   FailureKind
 	}{
-		{0, "anything", FailureGeneric},                       // exit 0 is never a failure
+		{0, "anything", FailureGeneric}, // exit 0 is never a failure
 		{1, "Operation not permitted", FailurePermission},
 		{1, "permission denied", FailurePermission},
 		{1, "Bootstrap failed: 5: Input/output error", FailureGeneric},
