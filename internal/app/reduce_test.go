@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
@@ -260,11 +261,39 @@ func TestLogLinesRingCap(t *testing.T) {
 	s.TailIdentity = "gui/501/com.a"
 	big := make([]LogLine, logRingCap+10)
 	for i := range big {
-		big[i] = LogLine{Stream: "out", Text: "x"}
+		big[i] = LogLine{Stream: "out", Text: fmt.Sprintf("%d", i)}
 	}
 	s = Reduce(LogLinesAppended{TailTarget: "gui/501/com.a", Lines: big}, s)
 	if len(s.LogRing) != logRingCap {
 		t.Fatalf("ring should cap at %d, got %d", logRingCap, len(s.LogRing))
+	}
+	if want := "10"; s.LogRing[0].Text != want {
+		t.Fatalf("ring should keep newest, first surviving line = %q, want %q", s.LogRing[0].Text, want)
+	}
+	if want := fmt.Sprintf("%d", logRingCap+9); s.LogRing[len(s.LogRing)-1].Text != want {
+		t.Fatalf("ring should keep newest, last surviving line = %q, want %q", s.LogRing[len(s.LogRing)-1].Text, want)
+	}
+}
+
+func TestDetailLoadedError(t *testing.T) {
+	s := selected(t)
+	s.Detail.LoadState = DetailLoading
+	s = Reduce(ServiceDetailLoaded{
+		Target: "gui/501/com.a",
+		Err:    &launchctl.ScanError{Kind: launchctl.FailurePermission, Stderr: "denied"},
+	}, s)
+	if s.Detail.LoadState != DetailError || s.Detail.ErrMsg != "requires sudo to inspect" {
+		t.Fatalf("permission error should map to sudo message: %+v", s.Detail)
+	}
+
+	s2 := selected(t)
+	s2.Detail.LoadState = DetailLoading
+	s2 = Reduce(ServiceDetailLoaded{
+		Target: "gui/501/com.a",
+		Err:    &launchctl.ScanError{Kind: launchctl.FailureGeneric, Stderr: "boom"},
+	}, s2)
+	if s2.Detail.LoadState != DetailError || s2.Detail.ErrMsg != "boom" {
+		t.Fatalf("generic error should surface stderr: %+v", s2.Detail)
 	}
 }
 
