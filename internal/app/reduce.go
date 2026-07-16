@@ -188,8 +188,7 @@ func Reduce(m Msg, s AppState) AppState {
 		if msg.Err != nil {
 			s.Detail.LoadState = DetailError
 			if msg.Err.Kind == launchctl.FailurePermission {
-				s.Detail.ErrMsg = "requires sudo to inspect"
-				s.PendingSudo = PendingSudo{Active: true, Kind: SudoInspect, Target: msg.Target}
+				s.Detail.ErrMsg = "requires sudo to inspect — run launchdeck with sudo to view system services"
 			} else {
 				s.Detail.ErrMsg = msg.Err.Stderr
 			}
@@ -199,9 +198,6 @@ func Reduce(m Msg, s AppState) AppState {
 		s.Detail.Metadata = msg.Detail
 		s.Detail.Raw = msg.Detail.Raw
 		s.Detail.ErrMsg = ""
-		// A successful inspect concludes any pending sudo retry.
-		s.PendingSudo = PendingSudo{}
-		s.SudoConfirmed = false
 		return s
 	case LogLinesAppended:
 		if msg.TailTarget != targetOf(s) {

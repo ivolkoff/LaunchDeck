@@ -322,7 +322,7 @@ func TestDetailLoadedError(t *testing.T) {
 		Target: "gui/501/com.a",
 		Err:    &launchctl.ScanError{Kind: launchctl.FailurePermission, Stderr: "denied"},
 	}, s)
-	if s.Detail.LoadState != DetailError || s.Detail.ErrMsg != "requires sudo to inspect" {
+	if want := "requires sudo to inspect — run launchdeck with sudo to view system services"; s.Detail.LoadState != DetailError || s.Detail.ErrMsg != want {
 		t.Fatalf("permission error should map to sudo message: %+v", s.Detail)
 	}
 
@@ -337,27 +337,16 @@ func TestDetailLoadedError(t *testing.T) {
 	}
 }
 
-func TestServiceDetailPermissionArmsSudoInspect(t *testing.T) {
+func TestServiceDetailPermissionNoSudoModal(t *testing.T) {
 	s := selected(t)
 	s.Detail.LoadState = DetailLoading
 	s = Reduce(ServiceDetailLoaded{
 		Target: targetOf(s),
 		Err:    &launchctl.ScanError{Kind: launchctl.FailurePermission, Stderr: "denied"},
 	}, s)
-	if !s.PendingSudo.Active || s.PendingSudo.Kind != SudoInspect {
-		t.Fatalf("permission error should arm sudo inspect retry: %+v", s.PendingSudo)
-	}
-}
-
-func TestServiceDetailSuccessClearsSudo(t *testing.T) {
-	s := selected(t)
-	s.Detail.LoadState = DetailLoading
-	s.PendingSudo = PendingSudo{Active: true, Kind: SudoInspect, Target: targetOf(s)}
-	s.SudoConfirmed = true
-	det := launchctl.ServiceDetail{Service: launchctl.Service{Label: "com.a"}, Program: "/bin/x"}
-	s = Reduce(ServiceDetailLoaded{Target: targetOf(s), Detail: det}, s)
-	if s.PendingSudo.Active || s.SudoConfirmed {
-		t.Fatalf("successful detail load should clear pending sudo: %+v", s)
+	want := "requires sudo to inspect — run launchdeck with sudo to view system services"
+	if s.Detail.LoadState != DetailError || s.Detail.ErrMsg != want || s.PendingSudo.Active {
+		t.Fatalf("permission error should be informational only, no sudo modal: %+v pendingSudo=%+v", s.Detail, s.PendingSudo)
 	}
 }
 

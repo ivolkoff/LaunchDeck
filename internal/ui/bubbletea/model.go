@@ -116,18 +116,11 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 			cmds = append(cmds, detailCmd(m.client, d, label))
 		}
 	}
-	// Confirmed sudo retry: fire the Cmd matching PendingSudo.Kind.
+	// Confirmed sudo retry: fire the sudo-action Cmd.
 	if _, ok := msg.(app.ConfirmSudo); ok && m.st.PendingSudo.Active {
 		ps := m.st.PendingSudo
-		switch ps.Kind {
-		case app.SudoAction:
-			if d, label, ok := m.selectedService(); ok {
-				cmds = append(cmds, sudoActionCmd(m.st.PendingAction(), ps.Target, launchctl.ActionArgs(m.st.PendingAction(), d.Target(label))))
-			}
-		case app.SudoInspect:
-			if d, label, ok := m.selectedService(); ok {
-				cmds = append(cmds, sudoInspectCmd(d, label))
-			}
+		if d, label, ok := m.selectedService(); ok {
+			cmds = append(cmds, sudoActionCmd(m.st.PendingAction(), ps.Target, launchctl.ActionArgs(m.st.PendingAction(), d.Target(label))))
 		}
 	}
 	return cmds

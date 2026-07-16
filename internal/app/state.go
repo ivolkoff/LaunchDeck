@@ -38,7 +38,6 @@ type SudoKind int
 
 const (
 	SudoAction SudoKind = iota
-	SudoInspect
 )
 
 type Filters struct {
