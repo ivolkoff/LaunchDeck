@@ -167,5 +167,4 @@ func (m *Model) maybeSaveFinal() {
 
 // --- Temporary stubs; replaced by later tasks. ---
 
-func (m Model) handleMouse(tea.MouseMsg) (tea.Model, tea.Cmd) { return m, nil }
-func (m Model) View() string                                  { return m.render() }
+func (m Model) View() string { return m.render() }
