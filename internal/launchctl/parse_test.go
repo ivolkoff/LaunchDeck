@@ -86,6 +86,21 @@ func TestParseServiceDetail(t *testing.T) {
 	}
 }
 
+func TestParseServiceDetailParsesPID(t *testing.T) {
+	base := Service{Label: "com.x", Domain: GUIDomain(501)}
+	dump := "com.x = {\n\tstate = running\n\tpid = 999\n}\n"
+	d := parseServiceDetail(dump, base)
+	if !d.HasPID || d.PID != 999 {
+		t.Fatalf("want pid 999 parsed from dump, got HasPID=%v PID=%d", d.HasPID, d.PID)
+	}
+
+	noPIDDump := "com.x = {\n\tstate = stopped\n}\n"
+	d2 := parseServiceDetail(noPIDDump, base)
+	if d2.HasPID {
+		t.Fatalf("want HasPID false when dump has no pid line, got %+v", d2)
+	}
+}
+
 func TestParseServiceDetailDisabled(t *testing.T) {
 	d := parseServiceDetail("x = {\n\tdisabled = true\n}\n", Service{Label: "x"})
 	if d.EnableState != Disabled {
