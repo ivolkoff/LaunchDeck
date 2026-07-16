@@ -1,6 +1,7 @@
 package bubbletea
 
 import (
+	"context"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -90,6 +91,13 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 	if m.st.Selected != prevSel && m.st.Selected != "" && !m.st.Gone {
 		if d, label, ok := m.selectedService(); ok {
 			cmds = append(cmds, detailCmd(m.client, d, label))
+		}
+	}
+	// Detail just loaded for the current selection: start the log tail.
+	if dl, ok := msg.(app.ServiceDetailLoaded); ok && m.st.Detail.LoadState == app.DetailReady {
+		if d, label, ok := m.selectedService(); ok && d.Target(label) == dl.Target {
+			m.st.TailIdentity = dl.Target
+			cmds = append(cmds, logTailCmd(context.Background(), d, m.st.Detail.Metadata))
 		}
 	}
 	// A run just started (ActionRunning flipped by reduce): fire the launchctl Cmd.
