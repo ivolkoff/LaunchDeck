@@ -314,3 +314,39 @@ func TestServicesLoadedNeverClobbersSudo(t *testing.T) {
 		t.Fatal("ServicesLoaded must not clobber pendingSudo")
 	}
 }
+
+func TestInferDomain(t *testing.T) {
+	if d, ok := inferDomain("/Users/me/Library/LaunchAgents/x.plist", 501); !ok || d.Kind != "gui" {
+		t.Fatalf("agents → gui: %v %v", d, ok)
+	}
+	if d, ok := inferDomain("/Library/LaunchDaemons/x.plist", 501); !ok || d.Kind != "system" {
+		t.Fatalf("daemons → system: %v %v", d, ok)
+	}
+	if _, ok := inferDomain("/tmp/x.plist", 501); ok {
+		t.Fatal("neither dir → reject")
+	}
+}
+
+func TestSubmitLoadRejectKeepsPromptOpen(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(OpenLoadPrompt{}, s)
+	s = Reduce(SetLoadBuffer{Buffer: "/tmp/x.plist"}, s)
+	s = Reduce(SubmitLoad{}, s)
+	if !s.LoadPrompt.Open || s.StatusMsg == "" {
+		t.Fatalf("un-inferrable path keeps prompt open with error: %+v", s)
+	}
+}
+
+func TestActionResultClearsStaleLoadTarget(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(OpenLoadPrompt{}, s)
+	s = Reduce(SetLoadBuffer{Buffer: "/Users/me/Library/LaunchAgents/x.plist"}, s)
+	s = Reduce(SubmitLoad{}, s)
+	if _, _, ok := s.LoadTarget(); !ok {
+		t.Fatalf("valid load should set loadTarget: %+v", s)
+	}
+	s = Reduce(ActionResult{Action: launchctl.ActionLoad, Outcome: launchctl.ActionOutcome{ExitCode: 0}}, s)
+	if _, _, ok := s.LoadTarget(); ok {
+		t.Fatal("completed action should clear stale loadTarget")
+	}
+}

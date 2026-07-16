@@ -88,6 +88,11 @@ type LoadPrompt struct {
 	Highlight  int
 }
 
+type loadTarget struct {
+	domain launchctl.Domain
+	plist  string
+}
+
 // AppState is the whole application state. reduce is the only mutator.
 type AppState struct {
 	Services []launchctl.Service // domain-scoped scan result (unfiltered, unsorted)
@@ -115,6 +120,7 @@ type AppState struct {
 	PendingConfirm PendingConfirm
 	PendingSudo    PendingSudo
 	LoadPrompt     LoadPrompt
+	loadTarget     loadTarget // resolved plist+domain for an in-flight SubmitLoad; read via LoadTarget()
 	ActionRunning  bool
 	SudoConfirmed  bool
 	pendingAction  launchctl.ActionKind // verb behind ActionRunning; read via PendingAction()
@@ -126,6 +132,12 @@ type AppState struct {
 }
 
 func (s AppState) PendingAction() launchctl.ActionKind { return s.pendingAction }
+
+func (s AppState) LoadTarget() (launchctl.Domain, string, bool) {
+	return s.loadTarget.domain, s.loadTarget.plist, s.loadTarget.plist != ""
+}
+
+func homeLaunchAgents(uid int) string { return "~/Library/LaunchAgents/" }
 
 const logRingCap = 5000
 

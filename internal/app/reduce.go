@@ -1,6 +1,10 @@
 package app
 
-import "github.com/volkoffskij/launchdeck/internal/launchctl"
+import (
+	"strings"
+
+	"github.com/volkoffskij/launchdeck/internal/launchctl"
+)
 
 func NewState(uid int) AppState {
 	return AppState{UID: uid, Filters: Filters{DomainScope: ScopeAll}}
@@ -18,6 +22,17 @@ func containsLabel(svcs []launchctl.Service, label string) bool {
 		}
 	}
 	return false
+}
+
+func inferDomain(path string, uid int) (launchctl.Domain, bool) {
+	switch {
+	case strings.Contains(path, "/LaunchAgents/"):
+		return launchctl.GUIDomain(uid), true
+	case strings.Contains(path, "/LaunchDaemons/"):
+		return launchctl.SystemDomain(), true
+	default:
+		return launchctl.Domain{}, false
+	}
 }
 
 func Reduce(m Msg, s AppState) AppState {
@@ -104,8 +119,30 @@ func Reduce(m Msg, s AppState) AppState {
 	case CancelAction:
 		s.PendingConfirm = PendingConfirm{}
 		return s
+	case OpenLoadPrompt:
+		s.LoadPrompt = LoadPrompt{Open: true, Buffer: homeLaunchAgents(s.UID)}
+		return s
+	case SetLoadBuffer:
+		s.LoadPrompt.Buffer = msg.Buffer
+		return s
+	case CancelLoad:
+		s.LoadPrompt = LoadPrompt{}
+		return s
+	case SubmitLoad:
+		path := s.LoadPrompt.Buffer
+		dom, ok := inferDomain(path, s.UID)
+		if !ok {
+			s.StatusMsg = "cannot infer domain (path is under neither LaunchAgents nor LaunchDaemons)"
+			return s // prompt stays open
+		}
+		s.LoadPrompt = LoadPrompt{}
+		s.ActionRunning = true
+		s.loadTarget = loadTarget{domain: dom, plist: path}
+		s.StatusMsg = "load…"
+		return s
 	case ActionResult:
 		s.ActionRunning = false
+		s.loadTarget = loadTarget{}
 		if msg.TimedOut {
 			s.StatusMsg = msg.Action.String() + " timed out"
 			return s
