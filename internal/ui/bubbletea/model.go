@@ -114,6 +114,22 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 			cmds = append(cmds, detailCmd(m.client, d, label))
 		}
 	}
+	// Confirmed sudo retry: fire the Cmd matching PendingSudo.Kind.
+	if _, ok := msg.(app.ConfirmSudo); ok && m.st.PendingSudo.Active {
+		ps := m.st.PendingSudo
+		switch ps.Kind {
+		case app.SudoAction:
+			if d, label, ok := m.selectedService(); ok {
+				cmds = append(cmds, sudoActionCmd(m.st.PendingAction(), ps.Target, launchctl.ActionArgs(m.st.PendingAction(), d.Target(label))))
+			}
+		case app.SudoInspect:
+			if d, label, ok := m.selectedService(); ok {
+				cmds = append(cmds, sudoInspectCmd(d, label))
+			}
+		case app.SudoEnumerate:
+			cmds = append(cmds, sudoEnumerateCmd())
+		}
+	}
 	return cmds
 }
 
@@ -121,7 +137,7 @@ func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
 // ActionRunning=true when that message is itself the ActionResult finishing it.
 func actionAlreadyDispatched(msg app.Msg) bool {
 	switch msg.(type) {
-	case app.ActionResult, app.ServicesLoaded, app.ServiceDetailLoaded, app.LogLinesAppended:
+	case app.ActionResult, app.ServicesLoaded, app.ServiceDetailLoaded, app.LogLinesAppended, app.ConfirmSudo:
 		return true
 	default:
 		return false

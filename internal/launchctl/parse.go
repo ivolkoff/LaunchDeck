@@ -98,6 +98,14 @@ func parseServiceDetail(dump string, svc Service) ServiceDetail {
 	return d
 }
 
+// ParseDetail is the exported entry point for callers that already captured a
+// `launchctl print <domain>/<label>` dump (e.g. the sudo inspect retry).
+func ParseDetail(dump string, svc Service) ServiceDetail { return parseServiceDetail(dump, svc) }
+
+// ParseScan is the exported entry point for callers that already captured a
+// `launchctl print <domain>` dump (e.g. the sudo enumerate retry).
+func ParseScan(dump string, d Domain) ([]Service, error) { return parseDomainScan(dump, d) }
+
 type FailureKind int
 
 const (

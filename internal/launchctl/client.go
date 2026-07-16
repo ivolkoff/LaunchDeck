@@ -77,7 +77,8 @@ type ActionOutcome struct {
 
 func (o ActionOutcome) OK() bool { return o.Err == nil && o.ExitCode == 0 }
 
-func actionArgs(a ActionKind, target string) []string {
+// ActionArgs builds the launchctl argv for a, given target ("<domain>/<label>").
+func ActionArgs(a ActionKind, target string) []string {
 	switch a {
 	case ActionStart:
 		return []string{"kickstart", target}
@@ -97,7 +98,7 @@ func actionArgs(a ActionKind, target string) []string {
 }
 
 func (c *Client) Action(ctx context.Context, a ActionKind, d Domain, label string) ActionOutcome {
-	args := actionArgs(a, d.Target(label))
+	args := ActionArgs(a, d.Target(label))
 	if args == nil {
 		return ActionOutcome{Err: errors.New("action has no label form: " + a.String())}
 	}
