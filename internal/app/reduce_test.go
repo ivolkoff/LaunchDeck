@@ -63,3 +63,42 @@ func TestScanErrorKeepsPriorList(t *testing.T) {
 		t.Fatal("scan error should set a status banner")
 	}
 }
+
+func TestSelectServiceResetsDetail(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 1), svc("com.b", launchctl.GUIDomain(501), 2)), s)
+	s.LogRing = []LogLine{{Stream: "out", Text: "old"}}
+	s = Reduce(SelectService{Label: "com.b"}, s)
+	if s.Selected != "com.b" || s.Detail.LoadState != DetailLoading || len(s.LogRing) != 0 {
+		t.Fatalf("select should reset detail+log: %+v", s)
+	}
+	if s.Gone {
+		t.Fatal("selecting a present service clears gone")
+	}
+}
+
+func TestMoveSelectionClamps(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 0), svc("com.b", launchctl.GUIDomain(501), 0)), s)
+	// first scan selected com.a
+	s = Reduce(MoveSelection{Delta: -1}, s) // already top, stays
+	if s.Selected != "com.a" {
+		t.Fatalf("clamp top: %q", s.Selected)
+	}
+	s = Reduce(MoveSelection{ToBottom: true}, s)
+	if s.Selected != "com.b" {
+		t.Fatalf("to bottom: %q", s.Selected)
+	}
+}
+
+func TestFocusAndTab(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(FocusPanel{}, s)
+	if s.Focus != FocusDetail {
+		t.Fatal("focus toggle")
+	}
+	s = Reduce(SetTab{Tab: TabRaw}, s)
+	if s.ActiveTab != TabRaw {
+		t.Fatal("set tab")
+	}
+}

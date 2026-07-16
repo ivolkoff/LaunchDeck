@@ -24,8 +24,76 @@ func Reduce(m Msg, s AppState) AppState {
 	switch msg := m.(type) {
 	case ServicesLoaded:
 		return reduceServicesLoaded(msg, s)
+	case SelectService:
+		return reduceSelect(msg.Label, s)
+	case MoveSelection:
+		return reduceMove(msg, s)
+	case FocusPanel:
+		if s.Focus == FocusSidebar {
+			s.Focus = FocusDetail
+		} else {
+			s.Focus = FocusSidebar
+		}
+		return s
+	case SetTab:
+		s.ActiveTab = msg.Tab
+		return s
+	case ScrollMsg:
+		if msg.Panel == FocusSidebar {
+			s.Scroll.List = clampMin0(s.Scroll.List + msg.Delta)
+		} else {
+			s.Scroll.Log = clampMin0(s.Scroll.Log + msg.Delta)
+		}
+		return s
 	}
 	return s
+}
+
+func clampMin0(n int) int {
+	if n < 0 {
+		return 0
+	}
+	return n
+}
+
+func reduceSelect(label string, s AppState) AppState {
+	s.Selected = label
+	s.Gone = false
+	s.SelectionResolved = true
+	s.Detail = Detail{LoadState: DetailLoading}
+	s.LogRing = nil
+	s.TailIdentity = ""
+	s.Scroll.Log = 0
+	return s
+}
+
+func reduceMove(m MoveSelection, s AppState) AppState {
+	vis := s.visible()
+	if len(vis) == 0 {
+		return s
+	}
+	idx := 0
+	for i, v := range vis {
+		if v.Label == s.Selected {
+			idx = i
+			break
+		}
+	}
+	switch {
+	case m.ToTop:
+		idx = 0
+	case m.ToBottom:
+		idx = len(vis) - 1
+	default:
+		idx += m.Delta
+	}
+	if idx < 0 {
+		idx = 0
+	}
+	if idx >= len(vis) {
+		idx = len(vis) - 1
+	}
+	return reduceSelect(vis[idx].Label, s)
 }
 
 func reduceServicesLoaded(msg ServicesLoaded, s AppState) AppState {
