@@ -34,6 +34,18 @@ func TestDeriveNoSelection(t *testing.T) {
 	}
 }
 
+func TestDeriveGoneFrozen(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 1)), s) // binds com.a
+	s.Detail = Detail{LoadState: DetailReady, Metadata: launchctl.ServiceDetail{
+		Service: launchctl.Service{Label: "com.a", Domain: launchctl.GUIDomain(501)}, Program: "/bin/x"}}
+	s = Reduce(loaded(svc("com.b", launchctl.GUIDomain(501), 2)), s) // com.a gone
+	vm := Derive(s)
+	if vm.Detail.Mode != "gone" || vm.Detail.Program != "/bin/x" {
+		t.Fatalf("gone should freeze last-known metadata: %+v", vm.Detail)
+	}
+}
+
 func TestDeriveRowsSortedAndSelected(t *testing.T) {
 	s := NewState(501)
 	s = Reduce(loaded(
