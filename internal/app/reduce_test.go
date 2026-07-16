@@ -198,3 +198,42 @@ func TestActionPickerPick(t *testing.T) {
 		t.Fatalf("pick dispatches + closes: %+v", s)
 	}
 }
+
+func TestActionResultPermissionSetsSudo(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStart}, s)
+	s = Reduce(ActionResult{
+		Action: launchctl.ActionStart, Target: "gui/501/com.a",
+		Outcome: launchctl.ActionOutcome{ExitCode: 1, Stderr: "Operation not permitted", Kind: launchctl.FailurePermission},
+	}, s)
+	if s.ActionRunning || !s.PendingSudo.Active || s.PendingSudo.Kind != SudoAction {
+		t.Fatalf("permission result → pendingSudo: %+v", s)
+	}
+}
+
+func TestActionResultTimeout(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStart}, s)
+	s = Reduce(ActionResult{Action: launchctl.ActionStart, TimedOut: true}, s)
+	if s.ActionRunning || s.StatusMsg == "" {
+		t.Fatalf("timeout clears running + notes: %+v", s)
+	}
+}
+
+func TestActionResultSuccess(t *testing.T) {
+	s := selected(t)
+	s = Reduce(RunAction{Action: launchctl.ActionStart}, s)
+	s = Reduce(ActionResult{Action: launchctl.ActionStart, Outcome: launchctl.ActionOutcome{ExitCode: 0}}, s)
+	if s.ActionRunning || s.PendingSudo.Active {
+		t.Fatalf("success clears state: %+v", s)
+	}
+}
+
+func TestCancelSudoClears(t *testing.T) {
+	s := selected(t)
+	s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: "gui/501/com.a"}
+	s = Reduce(CancelSudo{}, s)
+	if s.PendingSudo.Active {
+		t.Fatal("cancel clears sudo")
+	}
+}

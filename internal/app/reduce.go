@@ -104,6 +104,36 @@ func Reduce(m Msg, s AppState) AppState {
 	case CancelAction:
 		s.PendingConfirm = PendingConfirm{}
 		return s
+	case ActionResult:
+		s.ActionRunning = false
+		if msg.TimedOut {
+			s.StatusMsg = msg.Action.String() + " timed out"
+			return s
+		}
+		if msg.Outcome.OK() {
+			s.StatusMsg = msg.Action.String() + " ok"
+			return s
+		}
+		if msg.Outcome.Kind == launchctl.FailurePermission {
+			s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: msg.Target}
+			s.StatusMsg = msg.Action.String() + " needs sudo — Retry with sudo"
+			return s
+		}
+		s.StatusMsg = msg.Action.String() + " failed: " + msg.Outcome.Stderr
+		return s
+	case ConfirmSudo:
+		if !s.PendingSudo.Active {
+			return s
+		}
+		// The ui runs the sudo Cmd by PendingSudo.Kind; reduce just flags it running.
+		s.ActionRunning = s.PendingSudo.Kind == SudoAction
+		s.SudoConfirmed = true
+		return s
+	case CancelSudo:
+		s.PendingSudo = PendingSudo{}
+		s.SudoConfirmed = false
+		s.StatusMsg = ""
+		return s
 	}
 	return s
 }

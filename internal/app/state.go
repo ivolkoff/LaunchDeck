@@ -116,6 +116,7 @@ type AppState struct {
 	PendingSudo    PendingSudo
 	LoadPrompt     LoadPrompt
 	ActionRunning  bool
+	SudoConfirmed  bool
 	pendingAction  launchctl.ActionKind // verb behind ActionRunning; read via PendingAction()
 
 	FirstScanDone     bool
