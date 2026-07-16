@@ -157,8 +157,15 @@ func (m *Model) maybeSave() {
 	}
 }
 
+// maybeSaveFinal persists the session unconditionally (bypasses the debounce
+// check in maybeSave), used just before quitting so the final state is saved.
+func (m *Model) maybeSaveFinal() {
+	if p, err := session.Path(); err == nil {
+		_ = session.Save(p, app.ToSession(m.st))
+	}
+}
+
 // --- Temporary stubs; replaced by later tasks. ---
 
-func (m Model) handleKey(tea.KeyMsg) (tea.Model, tea.Cmd)     { return m, nil }
 func (m Model) handleMouse(tea.MouseMsg) (tea.Model, tea.Cmd) { return m, nil }
 func (m Model) View() string                                  { return m.render() }
