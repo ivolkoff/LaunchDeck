@@ -38,3 +38,21 @@ func clampInt(v, lo, hi int) int {
 	}
 	return v
 }
+
+// viewportHeights returns the content-row budgets renderList and
+// renderDetail's Logs/Raw tabs end up with for a terminal of the given
+// height. model.go's WindowSizeMsg handler feeds these into reduce so
+// Scroll.List/Scroll.Log windowing agrees with what render() actually draws.
+func viewportHeights(height int) (listH, logH int) {
+	bodyH := height - 1 // status row
+	frame := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).GetVerticalFrameSize()
+	listH = bodyH - frame
+	if listH < 1 {
+		listH = 1
+	}
+	logH = listH - 1 // tabs line
+	if logH < 1 {
+		logH = 1
+	}
+	return
+}

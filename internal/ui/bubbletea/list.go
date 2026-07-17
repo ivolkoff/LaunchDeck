@@ -7,36 +7,31 @@ import (
 	"github.com/volkoffskij/launchdeck/internal/app"
 )
 
+// renderList renders a box whose TOTAL OUTER size (including the border) is
+// exactly w x h. vm.Rows is already the windowed set of rows to display
+// (see app.Derive) — this just prints them.
 func renderList(vm app.ListVM, w, h int, focused bool) string {
 	border := lipgloss.NormalBorder()
-	style := lipgloss.NewStyle().Width(w).Height(h).Border(border)
+	style := lipgloss.NewStyle().Border(border)
+	contentW := w - style.GetHorizontalFrameSize()
+	contentH := h - style.GetVerticalFrameSize()
+	if contentW < 1 {
+		contentW = 1
+	}
+	if contentH < 1 {
+		contentH = 1
+	}
+	style = style.Width(contentW).Height(contentH)
 	if vm.Placeholder != "" {
 		return style.Render(vm.Placeholder)
 	}
-	vh := h - 2 // NormalBorder() adds 2 lines (top+bottom)
-	if vh < 1 {
-		vh = 1
-	}
-	start := 0
-	if sel := vm.SelectedIdx; sel >= vh {
-		start = sel - vh + 1
-	}
-	if maxStart := len(vm.Rows) - vh; maxStart < 0 {
-		maxStart = 0
-	} else if start > maxStart {
-		start = maxStart
-	}
-	end := start + vh
-	if end > len(vm.Rows) {
-		end = len(vm.Rows)
-	}
 	var b []string
-	for _, r := range vm.Rows[start:end] {
+	for _, r := range vm.Rows {
 		dot := "○"
 		if r.Running {
 			dot = "●"
 		}
-		line := dot + " " + ellipsize(r.Label, w-4)
+		line := dot + " " + ellipsize(r.Label, contentW-4)
 		if r.Gone {
 			line += " (gone)"
 		}
@@ -46,10 +41,7 @@ func renderList(vm app.ListVM, w, h int, focused bool) string {
 		}
 		b = append(b, zone.Mark("row:"+r.Label, row))
 	}
-	// Height must match the actual row count rendered, not the full budget h:
-	// lipgloss pads short content up to Height() before adding the border, so
-	// leaving it at h would re-inflate the box by the padding we just trimmed.
-	return style.Height(len(b)).Render(lipgloss.JoinVertical(lipgloss.Left, b...))
+	return style.Render(lipgloss.JoinVertical(lipgloss.Left, b...))
 }
 
 func ellipsize(s string, max int) string {

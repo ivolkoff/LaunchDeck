@@ -7,7 +7,12 @@ import (
 )
 
 func NewState(uid int) AppState {
-	return AppState{UID: uid, Filters: Filters{DomainScope: ScopeAll}}
+	return AppState{
+		UID:           uid,
+		Filters:       Filters{DomainScope: ScopeAll},
+		ListViewportH: 20,
+		LogViewportH:  20,
+	}
 }
 
 // visible applies the current filter+sort — the rows the user actually sees.
@@ -55,10 +60,16 @@ func Reduce(m Msg, s AppState) AppState {
 		return s
 	case ScrollMsg:
 		if msg.Panel == FocusSidebar {
-			s.Scroll.List = clampMin0(s.Scroll.List + msg.Delta)
+			s.Scroll.List = clampScrollList(s.Scroll.List+msg.Delta, len(s.visible()), s.ListViewportH)
 		} else {
 			s.Scroll.Log = clampMin0(s.Scroll.Log + msg.Delta)
 		}
+		return s
+	case WindowResized:
+		s.ListViewportH = clampMin1(msg.ListViewportH)
+		s.LogViewportH = clampMin1(msg.LogViewportH)
+		s.Scroll.List = clampScrollList(s.Scroll.List, len(s.visible()), s.ListViewportH)
+		s.Scroll.Log = clampMin0(s.Scroll.Log)
 		return s
 	case OpenFilter:
 		s.FilterEditing = true
@@ -276,6 +287,51 @@ func clampMin0(n int) int {
 	return n
 }
 
+func clampMin1(n int) int {
+	if n < 1 {
+		return 1
+	}
+	return n
+}
+
+// clampScrollList clamps a sidebar scroll offset into [0, max(0, n-viewportH)].
+func clampScrollList(scroll, n, viewportH int) int {
+	max := n - viewportH
+	if max < 0 {
+		max = 0
+	}
+	if scroll < 0 {
+		scroll = 0
+	} else if scroll > max {
+		scroll = max
+	}
+	return scroll
+}
+
+// scrollToKeepVisible adjusts scroll so idx (a row index into a list of n
+// rows, or -1 if not present) stays within a window of height viewportH,
+// then clamps the result to a valid scroll offset.
+func scrollToKeepVisible(scroll, idx, viewportH, n int) int {
+	if idx >= 0 {
+		if idx < scroll {
+			scroll = idx
+		} else if idx >= scroll+viewportH {
+			scroll = idx - viewportH + 1
+		}
+	}
+	return clampScrollList(scroll, n, viewportH)
+}
+
+// indexOfLabel returns the index of label in vis, or -1 if absent.
+func indexOfLabel(vis []launchctl.Service, label string) int {
+	for i, v := range vis {
+		if v.Label == label {
+			return i
+		}
+	}
+	return -1
+}
+
 func reduceSelect(label string, s AppState) AppState {
 	s.Selected = label
 	s.Gone = false
@@ -284,6 +340,8 @@ func reduceSelect(label string, s AppState) AppState {
 	s.LogRing = nil
 	s.TailIdentity = ""
 	s.Scroll.Log = 0
+	vis := s.visible()
+	s.Scroll.List = scrollToKeepVisible(s.Scroll.List, indexOfLabel(vis, label), s.ListViewportH, len(vis))
 	return s
 }
 
@@ -341,6 +399,9 @@ func reduceServicesLoaded(msg ServicesLoaded, s AppState) AppState {
 			s.SelectionResolved = true
 		} else {
 			s.Selected = ""
+		}
+		if s.Selected != "" {
+			s.Scroll.List = scrollToKeepVisible(s.Scroll.List, indexOfLabel(vis, s.Selected), s.ListViewportH, len(vis))
 		}
 		return s
 	}

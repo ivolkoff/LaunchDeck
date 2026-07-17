@@ -9,12 +9,28 @@ import (
 	"github.com/volkoffskij/launchdeck/internal/app"
 )
 
+// renderDetail renders a box whose TOTAL OUTER size (including the border)
+// is exactly w x h.
 func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
-	style := lipgloss.NewStyle().Width(w).Height(h).Border(lipgloss.NormalBorder())
+	border := lipgloss.NormalBorder()
+	style := lipgloss.NewStyle().Border(border)
+	contentW := w - style.GetHorizontalFrameSize()
+	contentH := h - style.GetVerticalFrameSize()
+	if contentW < 1 {
+		contentW = 1
+	}
+	if contentH < 1 {
+		contentH = 1
+	}
+	style = style.Width(contentW).Height(contentH)
 	if vm.Mode == "empty" {
 		return style.Render("Select a service")
 	}
 	tabs := renderTabs(vm.ActiveTab)
+	bodyH := contentH - 1 // tabs line
+	if bodyH < 1 {
+		bodyH = 1
+	}
 	var body string
 	scrollable := false
 	switch vm.ActiveTab {
@@ -50,24 +66,18 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 		body = "(gone) — service no longer present\n\n" + body
 	}
 	if scrollable {
-		body = scrollLines(body, h, logScroll)
+		body = scrollLines(body, bodyH, logScroll)
 	}
 	content := tabs + "\n" + body
-	if scrollable {
-		// Height must match the windowed content, not the full budget h:
-		// lipgloss pads short content up to Height() before adding the
-		// border, so leaving it at h would re-inflate the box by the
-		// padding we just trimmed via scrollLines.
-		style = style.Height(strings.Count(content, "\n") + 1)
-	}
 	return style.Render(content)
 }
 
 // scrollLines slices body to the visible window starting at logScroll lines
-// in, clamped so the window never runs past the end of the content.
-func scrollLines(body string, h, logScroll int) string {
+// in, clamped so the window never runs past the end of the content. vh is
+// the number of body rows available (border + tabs line already subtracted
+// by the caller).
+func scrollLines(body string, vh, logScroll int) string {
 	lines := strings.Split(body, "\n")
-	vh := h - 4 // border (2) + tabs line (1) + separator (1)
 	if vh < 1 {
 		vh = 1
 	}

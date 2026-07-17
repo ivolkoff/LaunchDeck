@@ -104,9 +104,11 @@ type AppState struct {
 	SortKey  SortKey
 	SortDesc bool
 
-	Scroll    Scroll
-	Focus     Focus
-	ActiveTab Tab
+	Scroll        Scroll
+	ListViewportH int // rows of sidebar content visible (set by WindowResized)
+	LogViewportH  int // rows of detail body content visible (set by WindowResized)
+	Focus         Focus
+	ActiveTab     Tab
 
 	Detail       Detail
 	LogRing      []LogLine // capped at logRingCap

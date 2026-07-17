@@ -22,8 +22,27 @@ func deriveList(s AppState) ListVM {
 	if len(vis) == 0 {
 		return ListVM{Placeholder: "No matching services"}
 	}
-	vm := ListVM{Rows: make([]RowVM, len(vis)), SelectedIdx: -1}
-	for i, sv := range vis {
+	viewportH := s.ListViewportH
+	if viewportH < 1 {
+		viewportH = 1
+	}
+	maxStart := len(vis) - viewportH
+	if maxStart < 0 {
+		maxStart = 0
+	}
+	start := s.Scroll.List
+	if start < 0 {
+		start = 0
+	} else if start > maxStart {
+		start = maxStart
+	}
+	end := start + viewportH
+	if end > len(vis) {
+		end = len(vis)
+	}
+	window := vis[start:end]
+	vm := ListVM{Rows: make([]RowVM, len(window)), SelectedIdx: -1}
+	for i, sv := range window {
 		sel := sv.Label == s.Selected
 		if sel {
 			vm.SelectedIdx = i

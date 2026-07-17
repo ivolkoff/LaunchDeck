@@ -83,6 +83,14 @@ type Quit struct{ base }
 
 // --- Async data messages ---
 
+// WindowResized carries the content-row budgets computed by the ui layer
+// from a tea.WindowSizeMsg, so reduce/derive can window the sidebar/detail
+// scroll using the same numbers render() draws with.
+type WindowResized struct {
+	base
+	ListViewportH, LogViewportH int
+}
+
 type ServicesLoaded struct {
 	base
 	Services []launchctl.Service

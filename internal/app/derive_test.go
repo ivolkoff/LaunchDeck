@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
@@ -58,5 +59,23 @@ func TestDeriveRowsSortedAndSelected(t *testing.T) {
 	}
 	if vm.List.SelectedIdx != 0 {
 		t.Fatalf("selected idx: %d", vm.List.SelectedIdx)
+	}
+}
+
+func TestDeriveListWindowed(t *testing.T) {
+	s := NewState(501)
+	var svcs []launchctl.Service
+	for i := 0; i < 30; i++ {
+		svcs = append(svcs, svc(fmt.Sprintf("com.%02d", i), launchctl.GUIDomain(501), 0))
+	}
+	s = Reduce(loaded(svcs...), s)
+	s.ListViewportH = 10
+	s.Scroll.List = 5
+	vm := Derive(s)
+	if len(vm.List.Rows) != 10 {
+		t.Fatalf("window size: got %d rows, want 10", len(vm.List.Rows))
+	}
+	if vm.List.Rows[0].Label != "com.05" {
+		t.Fatalf("window start: got %q, want com.05", vm.List.Rows[0].Label)
 	}
 }
