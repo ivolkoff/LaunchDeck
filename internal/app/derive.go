@@ -112,9 +112,12 @@ func deriveLog(s AppState) ([]string, string) {
 		}
 		return nil, ""
 	}
-	out := make([]string, len(s.LogRing))
+	// Newest first: the ring appends chronologically (oldest .. newest), so
+	// reverse it for display — the freshest line sits at the top of the panel.
+	n := len(s.LogRing)
+	out := make([]string, n)
 	for i, l := range s.LogRing {
-		out[i] = "[" + l.Stream + "] " + l.Text
+		out[n-1-i] = "[" + l.Stream + "] " + l.Text
 	}
 	return out, ""
 }

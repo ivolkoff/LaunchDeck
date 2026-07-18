@@ -79,3 +79,20 @@ func TestDeriveListWindowed(t *testing.T) {
 		t.Fatalf("window start: got %q, want com.05", vm.List.Rows[0].Label)
 	}
 }
+
+func TestDeriveLogNewestFirst(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(loaded(svc("com.a", launchctl.GUIDomain(501), 1)), s)
+	s.Selected = "com.a"
+	s.Detail.Metadata.StdoutPath = "/tmp/a.out"
+	s.LogRing = []LogLine{
+		{Stream: "out", Text: "first"},
+		{Stream: "out", Text: "second"},
+		{Stream: "out", Text: "third"},
+	}
+	vm := Derive(s)
+	got := vm.Detail.LogLines
+	if len(got) != 3 || got[0] != "[out] third" || got[2] != "[out] first" {
+		t.Fatalf("logs should be newest-first: %#v", got)
+	}
+}
