@@ -19,6 +19,9 @@ func (m Model) render() string {
 		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
 			"terminal too small (need ≥60×20)")
 	}
+	if m.helpOpen {
+		return m.renderHelp()
+	}
 	vm := app.Derive(m.st)
 	sidebarW := m.sidebarW()
 	detailW := m.width - sidebarW - 1
@@ -138,7 +141,48 @@ func (m Model) headerRows() int {
 // renderHeader draws the single-row title bar.
 func (m Model) renderHeader() string {
 	return m.theme.tabActive().Bold(true).Width(m.width).Render(
-		truncateLine(" LaunchDeck — launchctl services", m.width))
+		truncateLine(" LaunchDeck — launchctl services · ? help", m.width))
+}
+
+// renderHelp draws the centered help overlay listing every key and the mouse
+// actions. Any of ?/Esc/q closes it.
+func (m Model) renderHelp() string {
+	th := m.theme
+	title := th.accent().Bold(true).Render("LaunchDeck — help")
+	sec := func(s string) string { return th.accent().Render(s) }
+	body := strings.Join([]string{
+		title,
+		"",
+		sec("Navigation"),
+		"  ↑/k ↓/j      move selection (sidebar) · scroll (detail, by focus)",
+		"  Home/End     first / last row",
+		"  PgUp/PgDn    page up / down",
+		"  Tab          switch focus: sidebar ↔ detail",
+		"  1/2/3  ←/→   detail tabs: Metadata / Logs / Raw",
+		"  Ctrl-U/D     scroll detail ±10   ·   mouse wheel ±3",
+		"",
+		sec("Actions") + " (on the selected service)",
+		"  a            action picker → s start · r restart · k stop",
+		"               e enable · d disable · u unload",
+		"  y/Enter n/Esc  confirm / cancel a prompt",
+		"  L            load a plist (bootstrap)",
+		"",
+		sec("View"),
+		"  /            filter by name        d   user ↔ user+system",
+		"  s / S        sort key / direction  r   refresh now",
+		"  m            release mouse for native text select (drag + ⌘C)",
+		"  ?            this help             q / Ctrl-C  quit (saves)",
+		"",
+		sec("Mouse") + "  click rows/tabs/buttons · wheel scroll · drag the divider to resize",
+		"",
+		th.muted().Render("press ? or Esc to close"),
+	}, "\n")
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(th.border()).
+		Padding(1, 2).
+		Render(body)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, box)
 }
 
 // viewportHeights returns the content-row budgets renderList and

@@ -11,6 +11,19 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	k := msg.String()
 	st := m.st
 
+	// Help overlay: while open, any of ?/esc/q closes it; everything else is
+	// swallowed so the overlay is read-only.
+	if m.helpOpen {
+		if k == "?" || k == "esc" || k == "q" {
+			m.helpOpen = false
+		}
+		return m, nil
+	}
+	if k == "?" {
+		m.helpOpen = true
+		return m, nil
+	}
+
 	// Modal suppression: only the open modal's keys are live.
 	switch {
 	case st.FilterEditing:

@@ -463,3 +463,30 @@ func TestHeaderToggle(t *testing.T) {
 		}
 	}
 }
+
+func TestHelpOverlayToggle(t *testing.T) {
+	m := New(app.NewState(501), nil)
+	m.Init()
+	var md tea.Model = m
+	md, _ = md.(Model).Update(tea.WindowSizeMsg{Width: 100, Height: 32})
+	md, _ = md.(Model).handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	if !md.(Model).helpOpen {
+		t.Fatal("? should open the help overlay")
+	}
+	out := md.(Model).View()
+	if !strings.Contains(ansi.Strip(out), "LaunchDeck — help") {
+		t.Error("help overlay should show the help title")
+	}
+	if w, h := lipgloss.Width(out), len(strings.Split(out, "\n")); w > 100 || h > 32 {
+		t.Errorf("help overlay overflow: %dx%d", w, h)
+	}
+	// a random key does not close it; esc does
+	md, _ = md.(Model).handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	if !md.(Model).helpOpen {
+		t.Error("a non-close key should leave help open")
+	}
+	md, _ = md.(Model).handleKey(tea.KeyMsg{Type: tea.KeyEsc})
+	if md.(Model).helpOpen {
+		t.Error("esc should close help")
+	}
+}

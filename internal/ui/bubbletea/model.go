@@ -23,6 +23,7 @@ type Model struct {
 	pollBusy    bool
 	dragging    bool            // divider drag in progress
 	mouseOff    bool            // mouse capture released for native terminal text selection
+	helpOpen    bool            // help overlay shown
 	detailCache []string        // wrapped detail-body lines; recomputed only on content/width change
 	lastSaved   session.Session // debounce marker: last state written to disk
 }
