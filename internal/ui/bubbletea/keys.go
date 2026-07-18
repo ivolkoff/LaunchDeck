@@ -76,6 +76,14 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.applyIntent(app.ScrollMsg{Panel: st.Focus, Delta: -10})
 	case "ctrl+d":
 		return m.applyIntent(app.ScrollMsg{Panel: st.Focus, Delta: 10})
+	case "m":
+		// Release/recapture the mouse. Released, the terminal's own text
+		// selection (drag + ⌘C) works again; recaptured, clicks/drag/wheel do.
+		m.mouseOff = !m.mouseOff
+		if m.mouseOff {
+			return m, tea.DisableMouse
+		}
+		return m, tea.EnableMouseAllMotion
 	}
 	return m, nil
 }

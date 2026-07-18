@@ -32,6 +32,10 @@ var buttonKey = map[string]string{
 
 func (m Model) renderStatus(vm app.StatusVM, w int) string {
 	th := m.theme
+	if m.mouseOff {
+		return th.sel().Width(w).Render(truncateLine(
+			" text-select mode — drag to select, ⌘C to copy · press m to resume ", w))
+	}
 	if vm.Prompt != "" {
 		return th.sel().Width(w).Render(truncateLine(vm.Prompt, w))
 	}

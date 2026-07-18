@@ -17,6 +17,9 @@ func modalOpen(s app.AppState) bool {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	if m.mouseOff {
+		return m, nil // mouse released for native terminal text selection
+	}
 	// Divider drag is handled before the modal guard: a release must always end a
 	// drag, and a drag isn't a modal.
 	switch msg.Action {

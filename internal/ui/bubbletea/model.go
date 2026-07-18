@@ -22,6 +22,7 @@ type Model struct {
 	height    int
 	pollBusy  bool
 	dragging  bool            // divider drag in progress
+	mouseOff  bool            // mouse capture released for native terminal text selection
 	lastSaved session.Session // debounce marker: last state written to disk
 }
 

@@ -348,3 +348,27 @@ func TestDividerDragResizesSidebar(t *testing.T) {
 	}
 	_ = auto
 }
+
+func TestMouseToggleReleasesCapture(t *testing.T) {
+	m := New(app.NewState(501), nil)
+	m.Init()
+	var md tea.Model = m
+	// press 'm' -> mouse released
+	md, cmd := md.(Model).handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	if !md.(Model).mouseOff {
+		t.Fatal("m should release the mouse")
+	}
+	if cmd == nil {
+		t.Error("m should emit a DisableMouse command")
+	}
+	// while released, a mouse event is ignored
+	md2, _ := md.(Model).handleMouse(tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: 5, Y: 5})
+	if md2.(Model).st.Selected != md.(Model).st.Selected {
+		t.Error("mouse events must be ignored while capture is off")
+	}
+	// press 'm' again -> recaptured
+	md, _ = md.(Model).handleKey(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
+	if md.(Model).mouseOff {
+		t.Fatal("second m should recapture the mouse")
+	}
+}

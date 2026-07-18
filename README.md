@@ -71,8 +71,13 @@ otherwise.
 | `d`                       | toggle domain scope: user only ↔ user + system      |
 | `s` / `S`                 | cycle sort key / toggle sort direction              |
 | `L`                       | open the load (bootstrap) plist-path prompt         |
+| `m`                       | release/recapture the mouse for native text selection |
 | `r`                       | manual refresh                                      |
 | `q`, `Ctrl-C`             | save session and quit                               |
+
+To **select and copy text**, press `m` to release the mouse — the terminal's own
+selection (drag + ⌘C) works while released; the app's clicks/drag/wheel pause.
+Press `m` again to recapture the mouse.
 
 Inside the action picker: `s` Start, `r` Restart, `k` Stop, `e` Enable,
 `d` Disable, `u` Unload; `↑`/`↓` move the highlight, `Enter` picks it, `Esc`
