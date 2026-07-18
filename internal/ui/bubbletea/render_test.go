@@ -499,17 +499,34 @@ func TestRussianRenderNoOverflow(t *testing.T) {
 	i18n.SetLang(i18n.Ru)
 	t.Cleanup(func() { i18n.SetLang(i18n.En) })
 	const w, h = 60, 20 // the documented minimum
-	m := driveSized(app.NewState(501), w, h)
-	out := m.render()
-	lines := strings.Split(out, "\n")
-	if len(lines) > h {
-		t.Fatalf("frame has %d lines, want ≤ %d", len(lines), h)
-	}
-	for i, l := range lines {
-		if lipgloss.Width(l) > w {
-			t.Errorf("line %d width %d > %d: %q", i, lipgloss.Width(l), w, l)
+
+	assertBounds := func(t *testing.T, out string) {
+		lines := strings.Split(out, "\n")
+		if len(lines) > h {
+			t.Fatalf("frame has %d lines, want ≤ %d", len(lines), h)
+		}
+		for i, l := range lines {
+			if lipgloss.Width(l) > w {
+				t.Errorf("line %d width %d > %d: %q", i, lipgloss.Width(l), w, l)
+			}
 		}
 	}
+
+	// Each case renders the risky Cyrillic-width regions this task changed: the
+	// dynamically aligned metadata block (metaBlock), the localized tab row, the
+	// long-path metadata, the Logs tab, and the help overlay. A service must be
+	// selected or renderDetail short-circuits on "empty" and never draws them.
+	t.Run("metadata", func(t *testing.T) {
+		assertBounds(t, driveSized(stateWithLogs(1, 0, 0, app.TabMetadata), w, h).render())
+	})
+	t.Run("logs", func(t *testing.T) {
+		assertBounds(t, driveSized(stateWithLogs(1, 20, 40, app.TabLogs), w, h).render())
+	})
+	t.Run("help", func(t *testing.T) {
+		m := driveSized(stateWithLogs(1, 0, 0, app.TabMetadata), w, h)
+		m.helpOpen = true
+		assertBounds(t, m.render())
+	})
 }
 
 func TestHelpOverlayToggle(t *testing.T) {

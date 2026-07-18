@@ -21,7 +21,10 @@ func (m Model) render() string {
 			i18n.T("view.too_small"))
 	}
 	if m.helpOpen {
-		return m.renderHelp()
+		// Route through the same hard gate as the main frame: the help body can be
+		// taller/wider than a small terminal (more so in a wider-glyph language), and
+		// lipgloss.Place does not clip an oversized child. Clamp so it never overflows.
+		return clampFrame(m.renderHelp(), m.width, m.height)
 	}
 	vm := app.Derive(m.st)
 	sidebarW := m.sidebarW()
