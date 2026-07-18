@@ -7,16 +7,16 @@ import (
 	"github.com/volkoffskij/launchdeck/internal/app"
 )
 
-// renderList renders a box whose TOTAL OUTER size (including the border and its
-// 1-col inner padding) is exactly w x h. vm.Rows is already the windowed set of
-// rows (see app.Derive) — this just styles and prints them. The 1-col padding
-// keeps the selected-row highlight off the border instead of flush against it.
+// renderList renders a box whose TOTAL OUTER size (including the border) is
+// exactly w x h. vm.Rows is already the windowed set of rows (see app.Derive) —
+// this just styles and prints them. No inner padding: the row's own leading
+// space gives the selection its margin left of the marker, so all the width
+// goes to the labels.
 func (m Model) renderList(vm app.ListVM, w, h int) string {
 	th := m.theme
 	style := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
-		BorderForeground(th.border()).
-		Padding(0, 1)
+		BorderForeground(th.border())
 	// lipgloss Width() INCLUDES padding, so set it to w minus the border only;
 	// the actual text area is w minus the whole frame (border + padding).
 	contentW := w - style.GetHorizontalFrameSize() // text area
