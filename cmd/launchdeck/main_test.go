@@ -41,3 +41,29 @@ func TestHelpText(t *testing.T) {
 		}
 	}
 }
+
+func TestCrashMessage(t *testing.T) {
+	const url = "please report: https://github.com/volkoffskij/launchdeck/issues"
+
+	got := crashMessage("boom", "launchdeck v1.2.3")
+	want := "launchdeck v1.2.3 crashed: boom\n" + url
+	if got != want {
+		t.Errorf("string value:\n got %q\nwant %q", got, want)
+	}
+
+	got = crashMessage(42, "launchdeck dev")
+	want = "launchdeck dev crashed: 42\n" + url
+	if got != want {
+		t.Errorf("non-string value:\n got %q\nwant %q", got, want)
+	}
+
+	// A multi-line panic value collapses to a single line — the message is
+	// always exactly two lines.
+	got = crashMessage("line1\nline2", "launchdeck dev")
+	if lines := strings.Count(got, "\n"); lines != 1 {
+		t.Errorf("multi-line value produced %d newlines, want exactly 1: %q", lines, got)
+	}
+	if !strings.Contains(got, "line1 line2") {
+		t.Errorf("multi-line value not collapsed: %q", got)
+	}
+}

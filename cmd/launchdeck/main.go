@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"runtime/debug"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -84,6 +85,15 @@ Config files:
   ~/.config/launchdeck/theme.json     colours and header toggle
 
 Press ? inside the app for the full keymap.`
+}
+
+// crashMessage formats the two-line crash report. It is pure and deterministic:
+// the panic value is rendered with %v and any newlines collapsed to spaces, so
+// the message is always exactly two lines regardless of the value's type.
+func crashMessage(v any, version string) string {
+	val := strings.ReplaceAll(fmt.Sprintf("%v", v), "\n", " ")
+	return version + " crashed: " + val +
+		"\nplease report: https://github.com/volkoffskij/launchdeck/issues"
 }
 
 func main() {
