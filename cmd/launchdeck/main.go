@@ -33,6 +33,9 @@ func main() {
 	}
 
 	m := ui.New(st, launchctl.New())
+	if p, err := ui.ThemePath(); err == nil {
+		m = m.WithTheme(ui.LoadTheme(p))
+	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "launchdeck:", err)

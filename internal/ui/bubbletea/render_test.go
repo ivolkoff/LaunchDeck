@@ -209,7 +209,7 @@ func TestRawTabHasLineNumbers(t *testing.T) {
 		ActiveTab: app.TabRaw,
 		Raw:       "first line\nsecond line\nthird line",
 	}
-	lines := detailLines(vm, 40)
+	lines := detailLines(vm, 40, DefaultTheme())
 	if len(lines) < 3 {
 		t.Fatalf("expected 3 numbered rows, got %d", len(lines))
 	}
@@ -240,7 +240,7 @@ func TestMetadataWrapsLongPath(t *testing.T) {
 		Label:     "com.x",
 		Plist:     longPath,
 	}
-	lines := detailLines(vm, 40)
+	lines := detailLines(vm, 40, DefaultTheme())
 	joined := strings.Join(lines, "")
 	// the full path's tail must be present (not truncated away)
 	if !strings.Contains(strings.ReplaceAll(joined, " ", ""), strings.Repeat("a", 200)) {

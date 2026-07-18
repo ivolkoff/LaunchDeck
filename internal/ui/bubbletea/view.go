@@ -24,10 +24,11 @@ func (m Model) render() string {
 	detailW := m.width - sidebarW - 1
 	bodyH := m.height - 1 // status row
 
-	sidebar := renderList(vm.List, sidebarW, bodyH, m.st.Focus == app.FocusSidebar)
-	detail := renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
-	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, " ", detail)
-	status := renderStatus(vm.Status, m.width)
+	sidebar := m.renderList(vm.List, sidebarW, bodyH)
+	detail := m.renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
+	divider := zone.Mark("divider", " ")
+	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, divider, detail)
+	status := m.renderStatus(vm.Status, m.width)
 	frame := zone.Scan(lipgloss.JoinVertical(lipgloss.Left, body, status))
 	// Hard final gate: no sub-renderer bug can push the frame past the terminal.
 	// zone.Scan already stripped the zone markers, so the frame is plain ANSI+text
@@ -97,7 +98,7 @@ func (m Model) clampLogScroll() int {
 		return 0
 	}
 	_, logH := viewportHeights(m.height)
-	lines := len(detailLines(vm.Detail, detailContentW(m.width)))
+	lines := len(detailLines(vm.Detail, detailContentW(m.width), m.theme))
 	maxStart := lines - logH
 	if maxStart < 0 {
 		maxStart = 0

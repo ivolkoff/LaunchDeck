@@ -17,6 +17,7 @@ import (
 type Model struct {
 	st        app.AppState
 	client    *launchctl.Client
+	theme     Theme
 	width     int
 	height    int
 	pollBusy  bool
@@ -24,7 +25,13 @@ type Model struct {
 }
 
 func New(st app.AppState, c *launchctl.Client) Model {
-	return Model{st: st, client: c}
+	return Model{st: st, client: c, theme: DefaultTheme()}
+}
+
+// WithTheme returns a copy of the model using the given theme.
+func (m Model) WithTheme(t Theme) Model {
+	m.theme = t
+	return m
 }
 
 func (m Model) Init() tea.Cmd {

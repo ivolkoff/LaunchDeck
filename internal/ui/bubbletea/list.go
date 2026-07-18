@@ -7,12 +7,16 @@ import (
 	"github.com/volkoffskij/launchdeck/internal/app"
 )
 
-// renderList renders a box whose TOTAL OUTER size (including the border) is
-// exactly w x h. vm.Rows is already the windowed set of rows to display
-// (see app.Derive) — this just prints them.
-func renderList(vm app.ListVM, w, h int, focused bool) string {
-	border := lipgloss.NormalBorder()
-	style := lipgloss.NewStyle().Border(border)
+// renderList renders a box whose TOTAL OUTER size (including the border and its
+// 1-col inner padding) is exactly w x h. vm.Rows is already the windowed set of
+// rows (see app.Derive) — this just styles and prints them. The 1-col padding
+// keeps the selected-row highlight off the border instead of flush against it.
+func (m Model) renderList(vm app.ListVM, w, h int) string {
+	th := m.theme
+	style := lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(th.border()).
+		Padding(0, 1)
 	contentW := w - style.GetHorizontalFrameSize()
 	contentH := h - style.GetVerticalFrameSize()
 	if contentW < 1 {
@@ -23,23 +27,26 @@ func renderList(vm app.ListVM, w, h int, focused bool) string {
 	}
 	style = style.Width(contentW).Height(contentH)
 	if vm.Placeholder != "" {
-		return style.Render(vm.Placeholder)
+		return style.Render(th.muted().Render(vm.Placeholder))
 	}
 	var b []string
 	for _, r := range vm.Rows {
+		dotStyle := th.stopped()
 		dot := "○"
 		if r.Running {
-			dot = "●"
+			dot, dotStyle = "●", th.running()
 		}
-		line := dot + " " + ellipsize(r.Label, contentW-4)
+		label := ellipsize(r.Label, contentW-2)
+		line := dotStyle.Render(dot) + " " + label
 		if r.Gone {
-			line += " (gone)"
+			line += th.gone().Render(" (gone)")
 		}
-		row := lipgloss.NewStyle().Render(line)
 		if r.Selected {
-			row = lipgloss.NewStyle().Reverse(true).Render(line)
+			// Fill the row to the content width so the highlight spans it evenly,
+			// then the box's padding gives the gap from the border.
+			line = th.sel().Width(contentW).Render(dot + " " + label)
 		}
-		b = append(b, zone.Mark("row:"+r.Label, row))
+		b = append(b, zone.Mark("row:"+r.Label, line))
 	}
 	return style.Render(lipgloss.JoinVertical(lipgloss.Left, b...))
 }

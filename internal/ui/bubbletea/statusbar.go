@@ -30,20 +30,21 @@ var buttonKey = map[string]string{
 	"Unload":  "u",
 }
 
-func renderStatus(vm app.StatusVM, w int) string {
+func (m Model) renderStatus(vm app.StatusVM, w int) string {
+	th := m.theme
 	if vm.Prompt != "" {
-		return lipgloss.NewStyle().Width(w).Reverse(true).Render(truncateLine(vm.Prompt, w))
+		return th.sel().Width(w).Render(truncateLine(vm.Prompt, w))
 	}
 	// `a→` tells the user to press `a` (opens the picker), then the letter shown
 	// on each button; the whole `[s Start]` chip is also a mouse-click zone.
-	btns := []string{zone.Mark("btn:actions", "a→")}
+	btns := []string{zone.Mark("btn:actions", th.accent().Render("a→"))}
 	for _, b := range vm.Buttons {
-		label := "[" + buttonKey[b] + " " + b + "]"
+		label := "[" + th.accent().Render(buttonKey[b]) + " " + b + "]"
 		btns = append(btns, zone.Mark("btn:"+b, label))
 	}
 	line := lipgloss.JoinHorizontal(lipgloss.Top, btns...)
 	if vm.Message != "" {
-		line += "  " + vm.Message
+		line += "  " + th.muted().Render(vm.Message)
 	}
 	return lipgloss.NewStyle().Width(w).Render(truncateLine(line, w))
 }

@@ -15,9 +15,9 @@ import (
 // is exactly w x h. Every tab's body is word-wrapped to the panel width and
 // windowed by the scroll offset, so a long value reads on several rows instead
 // of being cut off, and content past the fold is reachable by scrolling.
-func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
-	border := lipgloss.NormalBorder()
-	style := lipgloss.NewStyle().Border(border)
+func (m Model) renderDetail(vm app.DetailVM, w, h, logScroll int) string {
+	th := m.theme
+	style := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(th.border())
 	contentW := w - style.GetHorizontalFrameSize()
 	contentH := h - style.GetVerticalFrameSize()
 	if contentW < 1 {
@@ -28,14 +28,14 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	}
 	style = style.Width(contentW).Height(contentH)
 	if vm.Mode == "empty" {
-		return style.Render("Select a service")
+		return style.Render(th.muted().Render("Select a service"))
 	}
-	tabs := renderTabs(vm.ActiveTab)
+	tabs := m.renderTabs(vm.ActiveTab)
 	bodyH := contentH - 1 // tabs line
 	if bodyH < 1 {
 		bodyH = 1
 	}
-	lines := detailLines(vm, contentW)
+	lines := detailLines(vm, contentW, th)
 	body := strings.Join(windowLines(lines, bodyH, logScroll), "\n")
 	return style.Render(tabs + "\n" + body)
 }
@@ -45,10 +45,10 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 // e.g. a long plist path — is hard-broken), Raw is word-wrapped with an
 // editor-style line-number gutter. Both the renderer and the scroll clamp use
 // this so they window over exactly the same rows.
-func detailLines(vm app.DetailVM, contentW int) []string {
+func detailLines(vm app.DetailVM, contentW int, th Theme) []string {
 	body := detailBody(vm)
 	if vm.ActiveTab == app.TabRaw {
-		return numberedWrap(body, contentW)
+		return numberedWrap(body, contentW, th)
 	}
 	return strings.Split(wrapBody(body, contentW), "\n")
 }
@@ -99,16 +99,11 @@ func wrapBody(s string, w int) string {
 	return strings.TrimRight(lipgloss.NewStyle().Width(w).Render(s), "\n")
 }
 
-// gutterStyle shades the Raw tab's line-number column so it reads as a separate
-// band from the code, with a space of padding on each side.
-var gutterStyle = lipgloss.NewStyle().
-	Background(lipgloss.Color("238")).
-	Foreground(lipgloss.Color("250"))
-
 // numberedWrap word-wraps body to width w with a right-aligned, shaded
 // line-number gutter (1-based, per logical line). Wrapped continuation rows keep
 // a blank shaded gutter so the content stays aligned, like an editor.
-func numberedWrap(body string, w int) []string {
+func numberedWrap(body string, w int, th Theme) []string {
+	gutterStyle := th.gutter()
 	logical := strings.Split(body, "\n")
 	gw := len(strconv.Itoa(len(logical))) // number digits
 	if gw < 1 {
@@ -158,13 +153,15 @@ func windowLines(lines []string, vh, offset int) []string {
 	return lines[start:end]
 }
 
-func renderTabs(active app.Tab) string {
+func (m Model) renderTabs(active app.Tab) string {
 	names := []string{"Metadata", "Logs", "Raw"}
 	var out []string
 	for i, n := range names {
 		s := " " + n + " "
 		if app.Tab(i) == active {
-			s = lipgloss.NewStyle().Reverse(true).Render(s)
+			s = m.theme.tabActive().Render(s)
+		} else {
+			s = m.theme.muted().Render(s)
 		}
 		out = append(out, zone.Mark("tab:"+n, s))
 	}
