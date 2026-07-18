@@ -130,10 +130,17 @@ func TestFilterCancelRestores(t *testing.T) {
 }
 
 func TestCycleDomainScope(t *testing.T) {
-	s := NewState(501) // ScopeAll
-	s = Reduce(CycleDomainScope{}, s)
-	if s.Filters.DomainScope != ScopeUser { // all → user → system → all
-		t.Fatalf("cycle from all: %v", s.Filters.DomainScope)
+	s := NewState(501) // default ScopeUser
+	if s.Filters.DomainScope != ScopeUser {
+		t.Fatalf("default scope should be user, got %v", s.Filters.DomainScope)
+	}
+	s = Reduce(CycleDomainScope{}, s) // user → all (user+system)
+	if s.Filters.DomainScope != ScopeAll {
+		t.Fatalf("toggle from user should go to all: %v", s.Filters.DomainScope)
+	}
+	s = Reduce(CycleDomainScope{}, s) // all → user
+	if s.Filters.DomainScope != ScopeUser {
+		t.Fatalf("toggle from all should go back to user: %v", s.Filters.DomainScope)
 	}
 }
 

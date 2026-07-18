@@ -12,7 +12,7 @@ func TestFromSessionClampsUnknownEnums(t *testing.T) {
 	if st.Selected != "com.a" || st.Scroll.List != 5 {
 		t.Fatalf("basic fields: %+v", st)
 	}
-	if st.Filters.DomainScope != ScopeAll || st.SortKey != SortLabel || st.ActiveTab != TabMetadata {
+	if st.Filters.DomainScope != ScopeUser || st.SortKey != SortLabel || st.ActiveTab != TabMetadata {
 		t.Fatalf("unknown enums must fall back to defaults: %+v", st)
 	}
 }

@@ -9,7 +9,7 @@ import (
 func NewState(uid int) AppState {
 	return AppState{
 		UID:           uid,
-		Filters:       Filters{DomainScope: ScopeAll},
+		Filters:       Filters{DomainScope: ScopeUser}, // user services by default
 		ListViewportH: 20,
 		LogViewportH:  20,
 	}
@@ -93,8 +93,15 @@ func Reduce(m Msg, s AppState) AppState {
 		s.FilterBuffer = ""
 		return s
 	case CycleDomainScope:
+		// Two-state toggle: user only ↔ user + system. `d` from the default
+		// user-only view brings the system daemons in, and back. (ScopeSystem —
+		// system-only — is never cycled into.)
 		f := s.Filters
-		f.DomainScope = (f.DomainScope + 1) % 3
+		if f.DomainScope == ScopeUser {
+			f.DomainScope = ScopeAll
+		} else {
+			f.DomainScope = ScopeUser
+		}
 		return Reduce(SetFilter{Filters: f}, s)
 	case SetFilter:
 		s.Filters = msg.Filters

@@ -68,7 +68,7 @@ otherwise.
 | `a`                       | open the action picker for the selected service     |
 | `y`/`Enter`, `n`/`Esc`    | confirm / cancel whichever prompt is open (destructive confirm or sudo-retry) |
 | `/`                       | open the text filter                                |
-| `d`                       | cycle domain scope: user → system → all             |
+| `d`                       | toggle domain scope: user only ↔ user + system      |
 | `s` / `S`                 | cycle sort key / toggle sort direction              |
 | `L`                       | open the load (bootstrap) plist-path prompt         |
 | `r`                       | manual refresh                                      |
