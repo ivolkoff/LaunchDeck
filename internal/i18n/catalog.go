@@ -40,6 +40,7 @@ var catalog = map[string]struct{ en, ru string }{
 	// --- list placeholders (internal/app/derive.go) ---
 	"list.loading": {"Loading services…", "Загрузка сервисов…"},
 	"list.empty":   {"No matching services", "Нет подходящих сервисов"},
+	"list.gone":    {" (gone)", " (удалён)"},
 
 	// --- run / enable state words (internal/app/derive.go) ---
 	"runstate.running": {"running", "работает"},

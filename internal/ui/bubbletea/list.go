@@ -7,6 +7,7 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 )
 
 // renderList renders a box whose TOTAL OUTER size (including the border) is
@@ -58,7 +59,7 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 			dotSeg := lipgloss.NewStyle().Foreground(dotColor).Background(selBg).Render(dot)
 			inner := th.sel().Render(" ") + dotSeg + th.sel().Render(" "+label)
 			if r.Gone {
-				inner += th.sel().Render(" (gone)")
+				inner += th.sel().Render(i18n.T("list.gone"))
 			}
 			if pad := (contentW - 1) - lipgloss.Width(inner); pad > 0 {
 				inner += th.sel().Render(strings.Repeat(" ", pad))
@@ -67,7 +68,7 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 		} else {
 			line = " " + lipgloss.NewStyle().Foreground(dotColor).Render(dot) + " " + label
 			if r.Gone {
-				line += th.gone().Render(" (gone)")
+				line += th.gone().Render(i18n.T("list.gone"))
 			}
 		}
 		b = append(b, zone.Mark("row:"+r.Label, line))
