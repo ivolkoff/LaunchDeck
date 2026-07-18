@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/muesli/termenv"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
@@ -399,4 +400,44 @@ func TestSidebarWheelScrollsList(t *testing.T) {
 	if md.st.Scroll.List <= before {
 		t.Errorf("sidebar wheel should scroll the list: %d -> %d", before, md.st.Scroll.List)
 	}
+}
+
+func TestLogsHaveLineNumbers(t *testing.T) {
+	vm := app.DetailVM{
+		Mode: "ready", ActiveTab: app.TabLogs,
+		LogLines: []string{"[out] hello", "[err] boom", "[out] third"},
+	}
+	lines := detailLines(vm, 50, DefaultTheme())
+	if len(lines) < 3 {
+		t.Fatalf("want 3 numbered log rows, got %d", len(lines))
+	}
+	if !strings.HasPrefix(strings.TrimLeft(ansi.Strip(lines[0]), " "), "1 ") {
+		t.Errorf("logs missing line numbers: %q", ansi.Strip(lines[0]))
+	}
+}
+
+func TestLogTagsColorCoded(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	out := colorLogTags("[out] normal\n[err] error", DefaultTheme())
+	lines := strings.Split(out, "\n")
+	outSGR := firstSGR(lines[0])
+	errSGR := firstSGR(lines[1])
+	if outSGR == "" || errSGR == "" {
+		t.Fatalf("both tags should be colored: out=%q err=%q", lines[0], lines[1])
+	}
+	if outSGR == errSGR {
+		t.Errorf("out and err tags should differ in color: both %q", outSGR)
+	}
+}
+
+// firstSGR returns the first SGR foreground escape (…m) in s.
+func firstSGR(s string) string {
+	i := strings.Index(s, "\x1b[38")
+	if i < 0 {
+		return ""
+	}
+	if end := strings.IndexByte(s[i:], 'm'); end >= 0 {
+		return s[i : i+end+1]
+	}
+	return ""
 }

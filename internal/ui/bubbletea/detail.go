@@ -52,10 +52,33 @@ func (m Model) renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 // this so they window over exactly the same rows.
 func detailLines(vm app.DetailVM, contentW int, th Theme) []string {
 	body := detailBody(vm)
-	if vm.ActiveTab == app.TabRaw {
+	switch vm.ActiveTab {
+	case app.TabRaw:
 		return numberedWrap(body, contentW, th)
+	case app.TabLogs:
+		if vm.LogNote != "" || len(vm.LogLines) == 0 {
+			return strings.Split(wrapBody(body, contentW), "\n") // a note, not log lines
+		}
+		// Numbered like an editor, with the [out]/[err] tag colour-coded.
+		return numberedWrap(colorLogTags(body, th), contentW, th)
+	default:
+		return strings.Split(wrapBody(body, contentW), "\n")
 	}
-	return strings.Split(wrapBody(body, contentW), "\n")
+}
+
+// colorLogTags colours the leading "[out]" / "[err]" tag on each log line so the
+// two streams read apart: errors in the gone/red colour, stdout muted.
+func colorLogTags(body string, th Theme) string {
+	lines := strings.Split(body, "\n")
+	for i, l := range lines {
+		switch {
+		case strings.HasPrefix(l, "[err]"):
+			lines[i] = th.gone().Render("[err]") + l[len("[err]"):]
+		case strings.HasPrefix(l, "[out]"):
+			lines[i] = th.muted().Render("[out]") + l[len("[out]"):]
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // detailBody builds the raw (unwrapped) body text for the active tab.
