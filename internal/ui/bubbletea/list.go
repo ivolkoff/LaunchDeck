@@ -1,6 +1,8 @@
 package bubbletea
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 
@@ -35,26 +37,38 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 	if vm.Placeholder != "" {
 		return style.Render(th.muted().Render(vm.Placeholder))
 	}
+	selBg := lipgloss.Color(th.SelectedBg)
 	var b []string
 	for _, r := range vm.Rows {
-		dotStyle := th.stopped()
+		dotColor := lipgloss.Color(th.Stopped)
 		dot := "○"
 		if r.Running {
-			dot, dotStyle = "●", th.running()
+			dot, dotColor = "●", lipgloss.Color(th.Running)
 		}
 		// One leading space before the marker so the selection highlight has a
 		// colored margin left of the ● instead of starting flush against it; all
 		// rows carry it so the dots stay vertically aligned. Reserve 4 cols
 		// (lead + ambiguous-width ●/○ up to 2 + gap) so the row never wraps.
 		label := ellipsize(r.Label, contentW-4)
-		line := " " + dotStyle.Render(dot) + " " + label
-		if r.Gone {
-			line += th.gone().Render(" (gone)")
-		}
+		var line string
 		if r.Selected {
-			// Fill to one under the text width so the highlight spans the row (with
-			// the leading margin) while leaving slack for a wide marker glyph.
-			line = th.sel().Width(contentW - 1).Render(" " + dot + " " + label)
+			// Keep the ● its running/stopped colour ON the selection background so
+			// the status still reads when the row is highlighted; the label and the
+			// padding carry the plain selection fg/bg.
+			dotSeg := lipgloss.NewStyle().Foreground(dotColor).Background(selBg).Render(dot)
+			inner := th.sel().Render(" ") + dotSeg + th.sel().Render(" "+label)
+			if r.Gone {
+				inner += th.sel().Render(" (gone)")
+			}
+			if pad := (contentW - 1) - lipgloss.Width(inner); pad > 0 {
+				inner += th.sel().Render(strings.Repeat(" ", pad))
+			}
+			line = inner
+		} else {
+			line = " " + lipgloss.NewStyle().Foreground(dotColor).Render(dot) + " " + label
+			if r.Gone {
+				line += th.gone().Render(" (gone)")
+			}
 		}
 		b = append(b, zone.Mark("row:"+r.Label, line))
 	}

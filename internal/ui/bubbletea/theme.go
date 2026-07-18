@@ -71,13 +71,7 @@ func (t Theme) sel() lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(t.SelectedFg)).Background(lipgloss.Color(t.SelectedBg))
 }
 func (t Theme) border() lipgloss.Color { return lipgloss.Color(t.Border) }
-func (t Theme) running() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color(t.Running))
-}
-func (t Theme) stopped() lipgloss.Style {
-	return lipgloss.NewStyle().Foreground(lipgloss.Color(t.Stopped))
-}
-func (t Theme) gone() lipgloss.Style { return lipgloss.NewStyle().Foreground(lipgloss.Color(t.Gone)) }
+func (t Theme) gone() lipgloss.Style   { return lipgloss.NewStyle().Foreground(lipgloss.Color(t.Gone)) }
 func (t Theme) tabActive() lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color(t.TabActiveFg)).Background(lipgloss.Color(t.TabActiveBg))
 }
