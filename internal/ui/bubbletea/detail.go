@@ -1,6 +1,8 @@
 package bubbletea
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -10,7 +12,9 @@ import (
 )
 
 // renderDetail renders a box whose TOTAL OUTER size (including the border)
-// is exactly w x h.
+// is exactly w x h. Every tab's body is word-wrapped to the panel width and
+// windowed by the scroll offset, so a long value reads on several rows instead
+// of being cut off, and content past the fold is reachable by scrolling.
 func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	border := lipgloss.NormalBorder()
 	style := lipgloss.NewStyle().Border(border)
@@ -31,33 +35,35 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	if bodyH < 1 {
 		bodyH = 1
 	}
-	body, scrollable := detailBody(vm)
-	if scrollable {
-		// Word-wrap the log/raw body to the panel width, then window it. lipgloss
-		// wraps at spaces and only hard-breaks a token longer than the panel, so
-		// a long log line reads on several rows instead of being cut mid-word.
-		// Every wrapped row participates in the scroll offset.
-		body = scrollLines(wrapBody(body, contentW), bodyH, logScroll)
-	} else {
-		// The metadata summary is not scrollable: keep one row per field by
-		// truncating, so a long path can't push fields off the bottom.
-		body = truncateLine(body, contentW)
-	}
-	content := tabs + "\n" + body
-	return style.Render(content)
+	lines := detailLines(vm, contentW)
+	body := strings.Join(windowLines(lines, bodyH, logScroll), "\n")
+	return style.Render(tabs + "\n" + body)
 }
 
-// detailBody builds the raw (unwrapped) body text for the active tab and reports
-// whether it is a scrollable log/raw view. Shared by renderDetail and the scroll
-// clamp so both agree on what is being shown.
-func detailBody(vm app.DetailVM) (body string, scrollable bool) {
+// detailLines produces the final display rows for the active tab, wrapped to
+// contentW: Metadata and Logs are word-wrapped (a token wider than the panel —
+// e.g. a long plist path — is hard-broken), Raw is word-wrapped with an
+// editor-style line-number gutter. Both the renderer and the scroll clamp use
+// this so they window over exactly the same rows.
+func detailLines(vm app.DetailVM, contentW int) []string {
+	body := detailBody(vm)
+	if vm.ActiveTab == app.TabRaw {
+		return numberedWrap(body, contentW)
+	}
+	return strings.Split(wrapBody(body, contentW), "\n")
+}
+
+// detailBody builds the raw (unwrapped) body text for the active tab.
+func detailBody(vm app.DetailVM) string {
+	var body string
 	switch vm.ActiveTab {
 	case app.TabMetadata:
-		if vm.Mode == "loading" {
+		switch vm.Mode {
+		case "loading":
 			body = "Loading detail…"
-		} else if vm.Mode == "error" {
+		case "error":
 			body = vm.Err
-		} else {
+		default:
 			body = strings.Join([]string{
 				"label:     " + vm.Label,
 				"domain:    " + vm.Domain,
@@ -74,16 +80,14 @@ func detailBody(vm app.DetailVM) (body string, scrollable bool) {
 			body = vm.LogNote
 		} else {
 			body = strings.Join(vm.LogLines, "\n")
-			scrollable = true
 		}
 	case app.TabRaw:
 		body = vm.Raw
-		scrollable = true
 	}
 	if vm.Mode == "gone" {
 		body = "(gone) — service no longer present\n\n" + body
 	}
-	return body, scrollable
+	return body
 }
 
 // wrapBody word-wraps s to w columns (space-aware; a token wider than w is
@@ -95,12 +99,36 @@ func wrapBody(s string, w int) string {
 	return strings.TrimRight(lipgloss.NewStyle().Width(w).Render(s), "\n")
 }
 
-// scrollLines slices body to the visible window starting at logScroll lines
-// in, clamped so the window never runs past the end of the content. vh is
-// the number of body rows available (border + tabs line already subtracted
-// by the caller).
-func scrollLines(body string, vh, logScroll int) string {
-	lines := strings.Split(body, "\n")
+// numberedWrap word-wraps body to width w with a right-aligned line-number
+// gutter (1-based, per logical line). Wrapped continuation rows keep a blank
+// gutter so the content stays aligned, like an editor's line numbers.
+func numberedWrap(body string, w int) []string {
+	logical := strings.Split(body, "\n")
+	gw := len(strconv.Itoa(len(logical))) // gutter digits
+	if gw < 1 {
+		gw = 1
+	}
+	gutter := gw + 1 // digits + one separating space
+	cw := w - gutter
+	if cw < 1 {
+		cw = 1
+	}
+	var out []string
+	for i, line := range logical {
+		for j, wl := range strings.Split(wrapBody(line, cw), "\n") {
+			if j == 0 {
+				out = append(out, fmt.Sprintf("%*d %s", gw, i+1, wl))
+			} else {
+				out = append(out, strings.Repeat(" ", gutter)+wl)
+			}
+		}
+	}
+	return out
+}
+
+// windowLines returns at most vh lines starting at offset, clamped so the window
+// never runs past the end of lines.
+func windowLines(lines []string, vh, offset int) []string {
 	if vh < 1 {
 		vh = 1
 	}
@@ -108,7 +136,7 @@ func scrollLines(body string, vh, logScroll int) string {
 	if maxStart < 0 {
 		maxStart = 0
 	}
-	start := logScroll
+	start := offset
 	if start < 0 {
 		start = 0
 	}
@@ -119,7 +147,7 @@ func scrollLines(body string, vh, logScroll int) string {
 	if end > len(lines) {
 		end = len(lines)
 	}
-	return strings.Join(lines[start:end], "\n")
+	return lines[start:end]
 }
 
 func renderTabs(active app.Tab) string {

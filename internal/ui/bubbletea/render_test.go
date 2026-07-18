@@ -200,6 +200,51 @@ func TestLogScrollNoRunaway(t *testing.T) {
 	}
 }
 
+// TestRawTabHasLineNumbers asserts the Raw tab renders an editor-style
+// line-number gutter (1, 2, 3, …) down the left of the dump.
+func TestRawTabHasLineNumbers(t *testing.T) {
+	vm := app.DetailVM{
+		Mode:      "ready",
+		ActiveTab: app.TabRaw,
+		Raw:       "first line\nsecond line\nthird line",
+	}
+	lines := detailLines(vm, 40)
+	if len(lines) < 3 {
+		t.Fatalf("expected 3 numbered rows, got %d", len(lines))
+	}
+	// gutter is right-aligned; the number then a space then content.
+	if !strings.HasPrefix(strings.TrimLeft(lines[0], " "), "1 first line") {
+		t.Errorf("row 0 missing line number: %q", lines[0])
+	}
+	if !strings.HasPrefix(strings.TrimLeft(lines[2], " "), "3 third line") {
+		t.Errorf("row 2 missing line number: %q", lines[2])
+	}
+}
+
+// TestMetadataWrapsLongPath asserts the Metadata tab wraps a long plist path
+// onto multiple rows (hard-broken, since a path has no spaces) instead of
+// truncating it — and every row stays within the panel width.
+func TestMetadataWrapsLongPath(t *testing.T) {
+	longPath := "/Users/me/Library/LaunchAgents/" + strings.Repeat("a", 200) + ".plist"
+	vm := app.DetailVM{
+		Mode:      "ready",
+		ActiveTab: app.TabMetadata,
+		Label:     "com.x",
+		Plist:     longPath,
+	}
+	lines := detailLines(vm, 40)
+	joined := strings.Join(lines, "")
+	// the full path's tail must be present (not truncated away)
+	if !strings.Contains(strings.ReplaceAll(joined, " ", ""), strings.Repeat("a", 200)) {
+		t.Errorf("long plist path was truncated, not wrapped")
+	}
+	for i, l := range lines {
+		if w := lipgloss.Width(l); w > 40 {
+			t.Errorf("metadata row %d width %d > 40", i, w)
+		}
+	}
+}
+
 // TestLogScrollMovesWindow guards that scrolling the detail panel actually
 // changes which log lines are shown (the offset is applied in the render, not
 // just stored in state).

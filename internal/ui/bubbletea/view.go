@@ -89,16 +89,15 @@ func detailContentW(width int) int {
 }
 
 // clampLogScroll bounds Scroll.Log to the active tab's wrapped content: at most
-// max(0, wrappedLines - logViewportRows). For a non-scrollable tab (metadata)
-// it forces 0. Returns the clamped offset; never inflates.
+// max(0, displayLines - logViewportRows). Returns the clamped offset; never
+// inflates. Uses the same detailLines the renderer windows, so they agree.
 func (m Model) clampLogScroll() int {
-	body, scrollable := detailBody(app.Derive(m.st).Detail)
-	if !scrollable {
+	vm := app.Derive(m.st)
+	if vm.Detail.Mode == "empty" {
 		return 0
 	}
 	_, logH := viewportHeights(m.height)
-	wrapped := wrapBody(body, detailContentW(m.width))
-	lines := len(strings.Split(wrapped, "\n"))
+	lines := len(detailLines(vm.Detail, detailContentW(m.width)))
 	maxStart := lines - logH
 	if maxStart < 0 {
 		maxStart = 0
