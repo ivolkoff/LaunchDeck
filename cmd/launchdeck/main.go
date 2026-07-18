@@ -4,7 +4,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"runtime"
@@ -97,13 +99,56 @@ func crashMessage(v any, version string) string {
 }
 
 func main() {
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr, startTUI))
+}
+
+// run parses flags, handles --version/--help, and otherwise calls start (the
+// guards + TUI). A deferred recover turns a main-goroutine panic into a clean
+// two-line message on stderr and exit code 1. start is injected so tests can
+// drive run without launching a TUI.
+func run(args []string, stdout, stderr io.Writer, start func() int) (code int) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintln(stderr, crashMessage(r, versionString()))
+			code = 1
+		}
+	}()
+
+	var showVersion, showHelp bool
+	fs := flag.NewFlagSet("launchdeck", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	fs.Usage = func() {
+		fmt.Fprintln(stderr, "Usage: launchdeck [flags] (run --help for details)")
+	}
+	fs.BoolVar(&showVersion, "version", false, "print the version and exit")
+	fs.BoolVar(&showVersion, "v", false, "print the version and exit")
+	fs.BoolVar(&showHelp, "help", false, "show this help and exit")
+	fs.BoolVar(&showHelp, "h", false, "show this help and exit")
+	if err := fs.Parse(args); err != nil {
+		return 2 // usage error; fs already wrote the message + one-line hint
+	}
+
+	if showHelp { // --help wins over --version
+		fmt.Fprintln(stdout, helpText())
+		return 0
+	}
+	if showVersion {
+		fmt.Fprintln(stdout, versionString())
+		return 0
+	}
+	return start()
+}
+
+// startTUI runs the platform guards and the TUI, returning an exit code. This is
+// the former body of main(); it is reached only on the normal no-flag path.
+func startTUI() int {
 	if runtime.GOOS != "darwin" {
 		fmt.Fprintln(os.Stderr, "launchdeck: macOS only")
-		os.Exit(1)
+		return 1
 	}
 	if _, err := exec.LookPath("launchctl"); err != nil {
 		fmt.Fprintln(os.Stderr, "launchdeck: launchctl not found in PATH")
-		os.Exit(1)
+		return 1
 	}
 
 	uid := os.Getuid()
@@ -118,9 +163,10 @@ func main() {
 	if p, err := ui.ThemePath(); err == nil {
 		m = m.WithTheme(ui.LoadTheme(p))
 	}
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
-	if _, err := p.Run(); err != nil {
+	prog := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	if _, err := prog.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "launchdeck:", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }

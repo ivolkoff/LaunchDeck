@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
@@ -65,5 +67,71 @@ func TestCrashMessage(t *testing.T) {
 	}
 	if !strings.Contains(got, "line1 line2") {
 		t.Errorf("multi-line value not collapsed: %q", got)
+	}
+}
+
+// noStart fails the test if the guards/TUI path is reached.
+func noStart(t *testing.T) func() int {
+	return func() int {
+		t.Helper()
+		t.Fatal("start (guards/TUI) reached — info flag should have returned first")
+		return 0
+	}
+}
+
+func TestRunVersionAndHelpReturnBeforeGuards(t *testing.T) {
+	cases := [][]string{{"--version"}, {"-v"}, {"--help"}, {"-h"}, {"--version", "--help"}}
+	for _, args := range cases {
+		var out, errb bytes.Buffer
+		code := run(args, &out, &errb, noStart(t))
+		if code != 0 {
+			t.Errorf("%v: code = %d, want 0", args, code)
+		}
+		if out.Len() == 0 {
+			t.Errorf("%v: expected stdout output", args)
+		}
+	}
+}
+
+func TestRunHelpWinsOverVersion(t *testing.T) {
+	var out bytes.Buffer
+	run([]string{"--version", "--help"}, &out, io.Discard, noStart(t))
+	if !strings.Contains(out.String(), "Usage: launchdeck [flags]") {
+		t.Errorf("--version --help should print help, got %q", out.String())
+	}
+}
+
+func TestRunUnknownFlag(t *testing.T) {
+	var errb bytes.Buffer
+	code := run([]string{"--nope"}, io.Discard, &errb, func() int { return 0 })
+	if code != 2 {
+		t.Errorf("unknown flag: code = %d, want 2", code)
+	}
+	// The one-line hint is shown, not flag.PrintDefaults()'s -h/-v dump.
+	if strings.Contains(errb.String(), "-version") || strings.Contains(errb.String(), "default") {
+		t.Errorf("stderr leaked flag default dump: %q", errb.String())
+	}
+}
+
+func TestRunRecoversMainGoroutinePanic(t *testing.T) {
+	var errb bytes.Buffer
+	code := run(nil, io.Discard, &errb, func() int { panic("boom") })
+	if code != 1 {
+		t.Errorf("panic: code = %d, want 1", code)
+	}
+	if !strings.Contains(errb.String(), "crashed: boom") ||
+		!strings.Contains(errb.String(), "please report:") {
+		t.Errorf("crash message not written to stderr: %q", errb.String())
+	}
+}
+
+func TestRunNormalPathCallsStart(t *testing.T) {
+	called := false
+	code := run(nil, io.Discard, io.Discard, func() int { called = true; return 7 })
+	if !called {
+		t.Error("normal path did not call start")
+	}
+	if code != 7 {
+		t.Errorf("code = %d, want 7 (start's return propagated)", code)
 	}
 }
