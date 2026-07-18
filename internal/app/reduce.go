@@ -3,8 +3,15 @@ package app
 import (
 	"strings"
 
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
 )
+
+// verb returns the current-language word for an action (e.g. "restart" /
+// "перезапуск"), used inside the localized status and prompt formats.
+func verb(a launchctl.ActionKind) string {
+	return i18n.T("action.verb." + a.String())
+}
 
 func NewState(uid int) AppState {
 	return AppState{
@@ -155,13 +162,13 @@ func Reduce(m Msg, s AppState) AppState {
 		path := s.LoadPrompt.Buffer
 		dom, ok := inferDomain(path, s.UID)
 		if !ok {
-			s.StatusMsg = "cannot infer domain (path is under neither LaunchAgents nor LaunchDaemons)"
+			s.StatusMsg = i18n.T("status.infer_domain")
 			return s // prompt stays open
 		}
 		s.LoadPrompt = LoadPrompt{}
 		s.ActionRunning = true
 		s.loadTarget = loadTarget{domain: dom, plist: path}
-		s.StatusMsg = "load…"
+		s.StatusMsg = i18n.T("status.load")
 		return s
 	case ActionResult:
 		s.ActionRunning = false
@@ -169,11 +176,11 @@ func Reduce(m Msg, s AppState) AppState {
 		s.PendingSudo = PendingSudo{}
 		s.SudoConfirmed = false
 		if msg.TimedOut {
-			s.StatusMsg = msg.Action.String() + " timed out"
+			s.StatusMsg = i18n.Tf("status.timeout", verb(msg.Action))
 			return s
 		}
 		if msg.Outcome.OK() {
-			s.StatusMsg = msg.Action.String() + " ok"
+			s.StatusMsg = i18n.Tf("status.ok", verb(msg.Action))
 			return s
 		}
 		if msg.Outcome.Kind == launchctl.FailurePermission {
@@ -181,14 +188,14 @@ func Reduce(m Msg, s AppState) AppState {
 			// selected service — the wrong command against the wrong target. Fail
 			// plainly instead of offering a broken retry.
 			if msg.Action == launchctl.ActionLoad {
-				s.StatusMsg = "load failed (permission denied) — system daemons must be loaded with elevated privileges"
+				s.StatusMsg = i18n.T("status.load_perm")
 				return s
 			}
 			s.PendingSudo = PendingSudo{Active: true, Kind: SudoAction, Target: msg.Target}
-			s.StatusMsg = msg.Action.String() + " needs sudo — Retry with sudo"
+			s.StatusMsg = i18n.Tf("status.needs_sudo", verb(msg.Action))
 			return s
 		}
-		s.StatusMsg = msg.Action.String() + " failed: " + msg.Outcome.Stderr
+		s.StatusMsg = i18n.Tf("status.failed", verb(msg.Action), msg.Outcome.Stderr)
 		return s
 	case ConfirmSudo:
 		if !s.PendingSudo.Active {
@@ -211,7 +218,7 @@ func Reduce(m Msg, s AppState) AppState {
 		if msg.Err != nil {
 			s.Detail.LoadState = DetailError
 			if msg.Err.Kind == launchctl.FailurePermission {
-				s.Detail.ErrMsg = "requires sudo to inspect — run launchdeck with sudo to view system services"
+				s.Detail.ErrMsg = i18n.T("detail.err_sudo")
 			} else {
 				s.Detail.ErrMsg = msg.Err.Stderr
 			}
@@ -264,7 +271,7 @@ func reduceRunAction(a launchctl.ActionKind, s AppState) AppState {
 		return s
 	}
 	if busy(s) {
-		s.StatusMsg = "action already running"
+		s.StatusMsg = i18n.T("status.busy")
 		return s
 	}
 	if a.Destructive() {
@@ -424,9 +431,9 @@ func reduceMove(m MoveSelection, s AppState) AppState {
 func reduceServicesLoaded(msg ServicesLoaded, s AppState) AppState {
 	if msg.Err != nil {
 		if msg.Err.Kind == launchctl.FailurePermission {
-			s.StatusMsg = "system services need root to enumerate (run launchdeck with sudo to see them)"
+			s.StatusMsg = i18n.T("status.enum_root")
 		} else {
-			s.StatusMsg = "failed to parse services"
+			s.StatusMsg = i18n.T("status.parse_fail")
 		}
 		return s // keep prior list
 	}

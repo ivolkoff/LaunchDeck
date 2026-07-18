@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
 )
 
@@ -16,11 +17,11 @@ func Derive(s AppState) ViewModel {
 
 func deriveList(s AppState) ListVM {
 	if !s.FirstScanDone {
-		return ListVM{Placeholder: "Loading services…"}
+		return ListVM{Placeholder: i18n.T("list.loading")}
 	}
 	vis := s.visible()
 	if len(vis) == 0 {
-		return ListVM{Placeholder: "No matching services"}
+		return ListVM{Placeholder: i18n.T("list.empty")}
 	}
 	viewportH := s.ListViewportH
 	if viewportH < 1 {
@@ -81,10 +82,10 @@ func deriveDetail(s AppState) DetailVM {
 	d.Domain = m.Domain.String()
 	if m.HasPID {
 		d.PID = fmt.Sprintf("%d", m.PID)
-		d.RunState = "running"
+		d.RunState = i18n.T("runstate.running")
 	} else {
 		d.PID = "-"
-		d.RunState = "stopped"
+		d.RunState = i18n.T("runstate.stopped")
 	}
 	d.LastExit = fmt.Sprintf("%d", m.LastExit)
 	d.EnableState = enableStr(m.EnableState)
@@ -97,9 +98,9 @@ func deriveDetail(s AppState) DetailVM {
 func enableStr(e launchctl.EnableState) string {
 	switch e {
 	case launchctl.Enabled:
-		return "enabled"
+		return i18n.T("enable.enabled")
 	case launchctl.Disabled:
-		return "disabled"
+		return i18n.T("enable.disabled")
 	default:
 		return "?"
 	}
@@ -108,7 +109,7 @@ func enableStr(e launchctl.EnableState) string {
 func deriveLog(s AppState) ([]string, string) {
 	if len(s.LogRing) == 0 {
 		if s.Detail.Metadata.StdoutPath == "" && s.Detail.Metadata.StderrPath == "" {
-			return nil, "no log configured"
+			return nil, i18n.T("log.none")
 		}
 		return nil, ""
 	}
@@ -129,15 +130,15 @@ func deriveStatus(s AppState) StatusVM {
 	}
 	switch {
 	case s.PendingConfirm.Active:
-		st.Prompt = fmt.Sprintf("%s %s? (y/n)", s.PendingConfirm.Action, labelOf(s.PendingConfirm.Target))
+		st.Prompt = i18n.Tf("prompt.confirm", verb(s.PendingConfirm.Action), labelOf(s.PendingConfirm.Target))
 	case s.PendingSudo.Active:
-		st.Prompt = "Retry with sudo? (y/n)"
+		st.Prompt = i18n.T("prompt.sudo")
 	case s.FilterEditing:
-		st.Prompt = "filter: " + s.FilterBuffer
+		st.Prompt = i18n.T("prompt.filter") + s.FilterBuffer
 	case s.LoadPrompt.Open:
-		st.Prompt = "load plist: " + s.LoadPrompt.Buffer
+		st.Prompt = i18n.T("prompt.load") + s.LoadPrompt.Buffer
 	case s.ActionPicker.Open:
-		st.Prompt = "action: " + s.ActionPicker.HighlightedVerb.String() + " (s/r/k/e/d/u, Enter, Esc)"
+		st.Prompt = i18n.Tf("prompt.action", verb(s.ActionPicker.HighlightedVerb))
 	}
 	return st
 }
