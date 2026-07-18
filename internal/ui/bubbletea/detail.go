@@ -35,7 +35,12 @@ func (m Model) renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	if bodyH < 1 {
 		bodyH = 1
 	}
-	lines := detailLines(vm, contentW, th)
+	// Use the cached wrapped lines (rebuilt only on content/width change); fall
+	// back to computing inline if the cache isn't primed yet.
+	lines := m.detailCache
+	if lines == nil {
+		lines = detailLines(vm, contentW, th)
+	}
 	body := strings.Join(windowLines(lines, bodyH, logScroll), "\n")
 	return style.Render(tabs + "\n" + body)
 }

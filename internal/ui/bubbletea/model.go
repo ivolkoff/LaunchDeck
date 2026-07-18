@@ -15,15 +15,16 @@ import (
 )
 
 type Model struct {
-	st        app.AppState
-	client    *launchctl.Client
-	theme     Theme
-	width     int
-	height    int
-	pollBusy  bool
-	dragging  bool            // divider drag in progress
-	mouseOff  bool            // mouse capture released for native terminal text selection
-	lastSaved session.Session // debounce marker: last state written to disk
+	st          app.AppState
+	client      *launchctl.Client
+	theme       Theme
+	width       int
+	height      int
+	pollBusy    bool
+	dragging    bool            // divider drag in progress
+	mouseOff    bool            // mouse capture released for native terminal text selection
+	detailCache []string        // wrapped detail-body lines; recomputed only on content/width change
+	lastSaved   session.Session // debounce marker: last state written to disk
 }
 
 func New(st app.AppState, c *launchctl.Client) Model {
@@ -55,6 +56,7 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 		m.width, m.height = msg.Width, msg.Height
 		listH, logH := viewportHeights(m.height)
 		m.st = app.Reduce(app.WindowResized{Width: msg.Width, ListViewportH: listH, LogViewportH: logH}, m.st)
+		(&m).refreshDetailCache() // width changed → re-wrap
 		return m, nil
 	case tea.KeyMsg:
 		return m.handleKey(msg)
@@ -73,6 +75,7 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, logTailCmd(context.Background(), d, m.st.Detail.Metadata))
 			}
 		}
+		(&m).maybeSave() // debounced session write: at most once per 2s tick
 		cmds = append(cmds, tick())
 		return m, tea.Batch(cmds...)
 	case app.Msg:
@@ -82,9 +85,8 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // affectsDetailScroll reports whether an intent can change the detail panel's
-// scroll offset or its wrapped content — the only cases the (expensive)
-// Scroll.Log re-clamp is needed. A sidebar scroll is excluded: it never touches
-// Scroll.Log, so re-wrapping the detail for it just adds lag.
+// scroll offset — the only cases the Scroll.Log re-clamp is needed. A sidebar
+// scroll is excluded: it never touches Scroll.Log.
 func affectsDetailScroll(msg app.Msg) bool {
 	switch m := msg.(type) {
 	case app.ScrollMsg:
@@ -97,6 +99,31 @@ func affectsDetailScroll(msg app.Msg) bool {
 	}
 }
 
+// affectsDetailContent reports whether an intent can change the detail body's
+// text or the width it's wrapped to — the only cases the detail cache must be
+// rebuilt. A sidebar scroll (and most other intents) leave it untouched.
+func affectsDetailContent(msg app.Msg) bool {
+	switch msg.(type) {
+	case app.SetTab, app.SelectService, app.MoveSelection,
+		app.ServiceDetailLoaded, app.LogLinesAppended, app.ServicesLoaded,
+		app.SetSidebarWidth, app.WindowResized:
+		return true
+	default:
+		return false
+	}
+}
+
+// refreshDetailCache recomputes the wrapped detail-body lines for the current
+// selection, tab, and panel width.
+func (m *Model) refreshDetailCache() {
+	vm := app.Derive(m.st)
+	if vm.Detail.Mode == "empty" {
+		m.detailCache = nil
+		return
+	}
+	m.detailCache = detailLines(vm.Detail, m.detailContentW(), m.theme)
+}
+
 // applyIntent runs reduce, then fires any Cmd the new state implies.
 func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 	prevSel := m.st.Selected
@@ -104,16 +131,20 @@ func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 		m.pollBusy = false
 	}
 	m.st = app.Reduce(msg, m.st)
-	// reduce floors Scroll.Log at 0 but can't bound it above (it needs the wrapped
-	// line count, which needs the width). Bound it here — but only for intents that
-	// could change the detail scroll or its content. clampLogScroll re-wraps the
-	// whole detail body, so running it on a sidebar scroll (which never touches
-	// Scroll.Log) just makes wheel-scrolling the list lag.
+	// The detail body (word-wrapped, possibly thousands of log/raw lines) is
+	// cached and only recomputed when its content or width changes — never on a
+	// sidebar scroll — so wheel-scrolling the list stays cheap.
+	if affectsDetailContent(msg) {
+		(&m).refreshDetailCache()
+	}
+	// Bound Scroll.Log only for intents that touch the detail scroll; it reads the
+	// cache, so it's cheap.
 	if affectsDetailScroll(msg) {
 		m.st.Scroll.Log = m.clampLogScroll()
 	}
+	// Session save is NOT done here (it would hit the disk on every scroll notch);
+	// it's debounced onto the 2s tick and forced on quit.
 	cmds := (&m).followUps(msg, prevSel)
-	(&m).maybeSave()
 	return m, tea.Batch(cmds...)
 }
 

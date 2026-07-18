@@ -103,14 +103,10 @@ func (m Model) detailContentW() int {
 // inflates. Uses the same detailLines the renderer windows, so they agree.
 func (m Model) clampLogScroll() int {
 	if m.st.Scroll.Log == 0 {
-		return 0 // already valid; skip the detail re-wrap in the common case
-	}
-	vm := app.Derive(m.st)
-	if vm.Detail.Mode == "empty" {
-		return 0
+		return 0 // already valid; nothing to clamp down to
 	}
 	_, logH := viewportHeights(m.height)
-	lines := len(detailLines(vm.Detail, m.detailContentW(), m.theme))
+	lines := len(m.detailCache) // the cache is fresh whenever this runs
 	maxStart := lines - logH
 	if maxStart < 0 {
 		maxStart = 0
