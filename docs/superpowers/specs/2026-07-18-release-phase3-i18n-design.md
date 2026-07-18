@@ -50,12 +50,17 @@ const (
 
 // SetLang sets the process-wide language. Call once at startup, before the
 // UI or any T/Tf call that must be localized. Not safe for concurrent use
-// with T/Tf; it is not called after startup.
+// with T/Tf; production code does not call it after startup, though tests may
+// set it sequentially (resetting to En via t.Cleanup between cases).
 func SetLang(l Lang)
 
-// T returns the message for key in the current language. Unknown key or a
-// key missing in the current language falls back to the English entry, then
-// to the key itself (so a missing translation degrades visibly, never panics).
+// T returns the message for key in the current language. "Missing in the
+// current language" means the selected language's field in the catalog entry
+// is the empty string; an empty target-language value triggers the English
+// fallback. Unknown key or such an empty value falls back to the English
+// entry, then to the key itself (so a missing translation degrades visibly,
+// never panics). A deliberately-blank Russian string is therefore not
+// representable here; add an explicit presence flag if that is ever needed.
 func T(key string) string
 
 // Tf is T + fmt.Sprintf with the current language's format string.
@@ -90,6 +95,15 @@ overlay lines), `header.*`, `runstate.*`, `enablestate.*`. The plan enumerates
 the full key→{en,ru} table; the mechanism here does not depend on the exact
 list.
 
+**Action-result format args:** the `%s` in every action-result format
+(`action.ok` = `%s ok`, `action.timeout` = `%s timed out`, `action.sudo` =
+`%s needs sudo…`, `action.failed` = `%s failed: …`) is the localized action
+word, not the raw `msg.Action.String()` enum. Each `Action` value maps to a
+word-level key (e.g. `action.restart` = `{"restart", "перезапуск"}`), and
+callers pass `Tf("action.ok", T("action.<verb>"))` so Russian yields
+`перезапуск ок`, not the mixed-language `restart ок`. The plan enumerates the
+full `Action`→key mapping.
+
 ### Language detection
 
 `Detect(getenv, cfgLang)`:
@@ -99,9 +113,15 @@ list.
    parses to a known language wins (e.g. `ru_RU.UTF-8` → `Ru`).
 3. Else `En`.
 
-Parsing: lowercase the value, take the leading run of ASCII letters, match its
-first two characters — `"ru"` → `Ru`, anything else → `En`. Only English and
-Russian exist; unknown locales fall back to English rather than erroring.
+Parsing is three-valued — `parse(s) → (Lang, ok)`: lowercase the value, take
+the leading run of ASCII letters, and match its first two characters. It is
+`ok` only when those are exactly `"ru"` (→ `Ru`) or `"en"` (→ `En`); empty
+input or anything else is not `ok`. A `cfgLang` is honored only when its parse
+is `ok` (step 1); in the env loop (step 2) any value that is not `ok` is
+skipped and the next var tried; `En` (step 3) applies only as the final
+default. Only English and Russian are recognized; unknown or empty values
+never win — they fall through to the next source, and detection ends at
+English.
 
 ### Config file (variant A)
 
@@ -151,6 +171,23 @@ Enum-only strings that are never shown to the user (`Mode` values
 `"empty"`/`"ready"`/… used purely for switching, JSON tags, log stream
 `"out"`/`"err"` tags) are **not** translated — they are internal keys.
 
+## Layout
+
+Cyrillic renders systematically wider than the English it replaces, and every
+in-scope region is width-sensitive (header title, "terminal too small" notice,
+detail tab names, column-aligned metadata labels, the action-button row, list
+placeholders, `RunState`/`EnableState` words). Requirements:
+
+- Width-bound regions must either truncate with an ellipsis or recompute their
+  width from the active language's content — a fixed width sized for English
+  must not clip or misalign Russian.
+- The minimum-terminal-size threshold behind the "terminal too small" notice is
+  derived from the longest active-language content, so a Russian session does
+  not spuriously trip it at sizes that render English fine.
+- A `SetLang(Ru)` render smoke test (UI layer, with
+  `t.Cleanup(func(){ SetLang(En) })`) renders a representative small terminal
+  size and asserts no overflow or column misalignment.
+
 ## Testing
 
 - `i18n.Detect` — table test over the precedence rules: config override wins;
@@ -158,8 +195,18 @@ Enum-only strings that are never shown to the user (`Mode` values
 - `i18n.T`/`Tf` — key present in both languages; missing-translation fallback
   to English; unknown-key fallback to the key; `Tf` formatting.
 - `config.Load` — present file, absent file, corrupt file.
-- A couple of Russian-render smoke checks: `SetLang(Ru)` then assert one
-  app-layer (`derive`/`reduce`) and one representative RU string.
+- Catalog completeness: iterate `catalog` and fail on any empty `ru` value;
+  assert every key referenced by `T`/`Tf` in the code exists in `catalog` (a
+  fixed key-set test). This catches typo'd/unmigrated keys (raw key shown) and
+  silent half-English Russian output that the fallback would otherwise hide.
+- Golden assertions for the currently-untested English chrome strings (header,
+  help overlay, too-small notice, tabs, metadata labels) so the "reproduce
+  English byte-for-byte" invariant is machine-checked, not merely asserted.
+- Russian-render smoke checks: the app-layer assertion (`SetLang(Ru)` then
+  assert one `derive`/`reduce` RU string) lives in an `internal/app` test, and
+  every test that calls `SetLang(Ru)` must `t.Cleanup(func(){ SetLang(En) })`
+  (or equivalent isolation) so the process-global language never leaks into a
+  later English-default assertion. (The UI layout smoke test is in Layout.)
 - The existing `internal/app` and `render_test` suites must stay green
   unchanged (English invariant).
 
@@ -178,4 +225,8 @@ Enum-only strings that are never shown to the user (`Mode` values
   `config.json` line documenting `lang`).
 - Modify `internal/app/reduce.go`, `internal/app/derive.go`.
 - Modify `internal/ui/bubbletea/view.go`, `detail.go`, `statusbar.go`.
+- Add a new `internal/app` RU smoke test file (e.g. `i18n_render_test.go`, with
+  `t.Cleanup(SetLang(En))`) and a UI-layer layout smoke test in
+  `internal/ui/bubbletea`; existing `internal/app`/`render_test` cases stay
+  unchanged.
 - Update `README.md` (document `config.json` + `lang`, and auto-detection).
