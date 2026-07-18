@@ -42,18 +42,19 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 		if r.Running {
 			dot, dotStyle = "●", th.running()
 		}
-		// Reserve 3 cols for the marker: the ●/○ glyph is ambiguous-width and may
-		// render as 2 cells in some terminals — reserving an extra col keeps the
-		// row on one line instead of wrapping and shifting the rows below it.
-		label := ellipsize(r.Label, contentW-3)
-		line := dotStyle.Render(dot) + " " + label
+		// One leading space before the marker so the selection highlight has a
+		// colored margin left of the ● instead of starting flush against it; all
+		// rows carry it so the dots stay vertically aligned. Reserve 4 cols
+		// (lead + ambiguous-width ●/○ up to 2 + gap) so the row never wraps.
+		label := ellipsize(r.Label, contentW-4)
+		line := " " + dotStyle.Render(dot) + " " + label
 		if r.Gone {
 			line += th.gone().Render(" (gone)")
 		}
 		if r.Selected {
-			// Fill to one under the text width so the highlight spans the row while
-			// leaving the reserved marker col — the box padding gives the border gap.
-			line = th.sel().Width(contentW - 1).Render(dot + " " + label)
+			// Fill to one under the text width so the highlight spans the row (with
+			// the leading margin) while leaving slack for a wide marker glyph.
+			line = th.sel().Width(contentW - 1).Render(" " + dot + " " + label)
 		}
 		b = append(b, zone.Mark("row:"+r.Label, line))
 	}
