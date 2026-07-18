@@ -81,6 +81,22 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// affectsDetailScroll reports whether an intent can change the detail panel's
+// scroll offset or its wrapped content — the only cases the (expensive)
+// Scroll.Log re-clamp is needed. A sidebar scroll is excluded: it never touches
+// Scroll.Log, so re-wrapping the detail for it just adds lag.
+func affectsDetailScroll(msg app.Msg) bool {
+	switch m := msg.(type) {
+	case app.ScrollMsg:
+		return m.Panel == app.FocusDetail
+	case app.SetTab, app.SelectService, app.MoveSelection, app.FocusPanel,
+		app.WindowResized, app.ServiceDetailLoaded, app.LogLinesAppended:
+		return true
+	default:
+		return false
+	}
+}
+
 // applyIntent runs reduce, then fires any Cmd the new state implies.
 func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 	prevSel := m.st.Selected
@@ -88,10 +104,14 @@ func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 		m.pollBusy = false
 	}
 	m.st = app.Reduce(msg, m.st)
-	// reduce floors Scroll.Log at 0 but can't bound it above (it doesn't know the
-	// wrapped line count, which needs the width). Bound it here so scrolling past
-	// the end doesn't inflate the offset and lag the next scroll-up.
-	m.st.Scroll.Log = m.clampLogScroll()
+	// reduce floors Scroll.Log at 0 but can't bound it above (it needs the wrapped
+	// line count, which needs the width). Bound it here — but only for intents that
+	// could change the detail scroll or its content. clampLogScroll re-wraps the
+	// whole detail body, so running it on a sidebar scroll (which never touches
+	// Scroll.Log) just makes wheel-scrolling the list lag.
+	if affectsDetailScroll(msg) {
+		m.st.Scroll.Log = m.clampLogScroll()
+	}
 	cmds := (&m).followUps(msg, prevSel)
 	(&m).maybeSave()
 	return m, tea.Batch(cmds...)

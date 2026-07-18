@@ -102,6 +102,9 @@ func (m Model) detailContentW() int {
 // max(0, displayLines - logViewportRows). Returns the clamped offset; never
 // inflates. Uses the same detailLines the renderer windows, so they agree.
 func (m Model) clampLogScroll() int {
+	if m.st.Scroll.Log == 0 {
+		return 0 // already valid; skip the detail re-wrap in the common case
+	}
 	vm := app.Derive(m.st)
 	if vm.Detail.Mode == "empty" {
 		return 0

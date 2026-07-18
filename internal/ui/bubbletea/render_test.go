@@ -372,3 +372,31 @@ func TestMouseToggleReleasesCapture(t *testing.T) {
 		t.Fatal("second m should recapture the mouse")
 	}
 }
+
+func TestAffectsDetailScroll(t *testing.T) {
+	// sidebar scroll must NOT trigger the expensive detail re-wrap
+	if affectsDetailScroll(app.ScrollMsg{Panel: app.FocusSidebar}) {
+		t.Error("sidebar scroll should not affect detail scroll")
+	}
+	if !affectsDetailScroll(app.ScrollMsg{Panel: app.FocusDetail}) {
+		t.Error("detail scroll should affect detail scroll")
+	}
+	if !affectsDetailScroll(app.SetTab{Tab: app.TabRaw}) {
+		t.Error("tab change should affect detail scroll")
+	}
+	if affectsDetailScroll(app.SetFilter{}) {
+		t.Error("filter change should not affect detail scroll")
+	}
+}
+
+func TestSidebarWheelScrollsList(t *testing.T) {
+	st := stateWithLogs(60, 0, 0, app.TabMetadata) // 60 services, small viewport
+	md := driveSized(st, 100, 20)
+	before := md.st.Scroll.List
+	// wheel down over a sidebar row
+	next, _ := md.Update(app.ScrollMsg{Panel: app.FocusSidebar, Delta: 3})
+	md = next.(Model)
+	if md.st.Scroll.List <= before {
+		t.Errorf("sidebar wheel should scroll the list: %d -> %d", before, md.st.Scroll.List)
+	}
+}
