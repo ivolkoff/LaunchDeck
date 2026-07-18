@@ -102,6 +102,35 @@ func TestViewNeverOverflows(t *testing.T) {
 	}
 }
 
+// TestClampFrameHardBounds proves the final gate is absolute: whatever a
+// sub-renderer produces (over-wide lines, too many rows), the frame is forced
+// into w x h. This is the guarantee the layout can't overflow regardless of any
+// other bug.
+func TestClampFrameHardBounds(t *testing.T) {
+	inputs := []string{
+		strings.Repeat("x", 500),                                   // one over-wide line
+		strings.Repeat(strings.Repeat("y", 300)+"\n", 200),         // many over-wide lines
+		strings.Join(make([]string, 100), "row of text padding\n"), // too many rows
+		"\x1b[31m" + strings.Repeat("z", 400) + "\x1b[0m",          // ANSI-colored over-wide
+	}
+	for _, w := range []int{1, 40, 80, 120} {
+		for _, h := range []int{1, 20, 40} {
+			for i, in := range inputs {
+				out := clampFrame(in, w, h)
+				lines := strings.Split(out, "\n")
+				if len(lines) > h {
+					t.Errorf("input %d at %dx%d: %d lines > %d", i, w, h, len(lines), h)
+				}
+				for _, l := range lines {
+					if lipgloss.Width(l) > w {
+						t.Errorf("input %d at %dx%d: line width %d > %d", i, w, h, lipgloss.Width(l), w)
+					}
+				}
+			}
+		}
+	}
+}
+
 // TestLogScrollMovesWindow guards that scrolling the detail panel actually
 // changes which log lines are shown (the offset is applied in the render, not
 // just stored in state).

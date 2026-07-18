@@ -1,6 +1,8 @@
 package bubbletea
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 
@@ -26,7 +28,36 @@ func (m Model) render() string {
 	detail := renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, " ", detail)
 	status := renderStatus(vm.Status, m.width)
-	return zone.Scan(lipgloss.JoinVertical(lipgloss.Left, body, status))
+	frame := zone.Scan(lipgloss.JoinVertical(lipgloss.Left, body, status))
+	// Hard final gate: no sub-renderer bug can push the frame past the terminal.
+	// zone.Scan already stripped the zone markers, so the frame is plain ANSI+text
+	// and safe to clamp line-by-line. This is a belt-and-suspenders guarantee on
+	// top of each renderer's own width/height budgeting.
+	return clampFrame(frame, m.width, m.height)
+}
+
+// clampFrame forces s to occupy at most w columns and h rows: every line is
+// truncated to w display cells (ANSI-aware), and at most the first h lines are
+// kept. It never pads — a frame that is already within bounds is returned
+// unchanged in extent.
+func clampFrame(s string, w, h int) string {
+	if w < 1 {
+		w = 1
+	}
+	if h < 1 {
+		h = 1
+	}
+	lines := strings.Split(s, "\n")
+	if len(lines) > h {
+		lines = lines[:h]
+	}
+	trunc := lipgloss.NewStyle().MaxWidth(w)
+	for i, l := range lines {
+		if lipgloss.Width(l) > w {
+			lines[i] = trunc.Render(l)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func clampInt(v, lo, hi int) int {
