@@ -57,6 +57,13 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 			m.pollBusy = true
 			cmds = append(cmds, pollCmd(m.client, m.st.UID))
 		}
+		// Live logs: re-read the selected service's tail every tick so the Logs
+		// tab updates in near real time (≤ the 2s poll interval).
+		if m.st.Selected != "" && !m.st.Gone && m.st.Detail.LoadState == app.DetailReady {
+			if d, _, ok := m.selectedService(); ok {
+				cmds = append(cmds, logTailCmd(context.Background(), d, m.st.Detail.Metadata))
+			}
+		}
 		cmds = append(cmds, tick())
 		return m, tea.Batch(cmds...)
 	case app.Msg:

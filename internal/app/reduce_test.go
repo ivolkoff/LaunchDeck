@@ -403,3 +403,15 @@ func TestActionResultClearsStaleLoadTarget(t *testing.T) {
 		t.Fatal("completed action should clear stale loadTarget")
 	}
 }
+
+func TestLogLinesReplacesNotAppends(t *testing.T) {
+	s := selected(t)
+	s.TailIdentity = "gui/501/com.a"
+	tgt := "gui/501/com.a"
+	s = Reduce(LogLinesAppended{TailTarget: tgt, Lines: []LogLine{{Stream: "out", Text: "a"}, {Stream: "out", Text: "b"}}}, s)
+	// second tail snapshot must REPLACE, not append (no duplicated overlap)
+	s = Reduce(LogLinesAppended{TailTarget: tgt, Lines: []LogLine{{Stream: "out", Text: "b"}, {Stream: "out", Text: "c"}}}, s)
+	if len(s.LogRing) != 2 || s.LogRing[0].Text != "b" || s.LogRing[1].Text != "c" {
+		t.Fatalf("second snapshot should replace the ring, got %#v", s.LogRing)
+	}
+}

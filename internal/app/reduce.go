@@ -214,7 +214,10 @@ func Reduce(m Msg, s AppState) AppState {
 		if msg.TailTarget != targetOf(s) {
 			return s
 		}
-		s.LogRing = append(s.LogRing, msg.Lines...)
+		// Each message carries the current tail snapshot (the tail Cmd re-reads on
+		// every poll for live updates), so replace the ring rather than append —
+		// appending would duplicate the overlapping lines every tick.
+		s.LogRing = msg.Lines
 		if len(s.LogRing) > logRingCap {
 			s.LogRing = s.LogRing[len(s.LogRing)-logRingCap:]
 		}
