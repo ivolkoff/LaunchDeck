@@ -97,7 +97,7 @@ otherwise.
 | mouse wheel over detail   | scroll the detail panel's Logs/Raw body (±3 lines)  |
 | `a`                       | open the action picker for the selected service     |
 | `y`/`Enter`, `n`/`Esc`    | confirm / cancel whichever prompt is open (destructive confirm or sudo-retry) |
-| `/`                       | open the text filter                                |
+| `/` or `f`                | open the sidebar filter (regex, live as you type; `Esc` cancels) |
 | `d`                       | toggle domain scope: user only ↔ user + system      |
 | `s` / `S`                 | cycle sort key / toggle sort direction              |
 | `L`                       | open the load (bootstrap) plist-path prompt         |

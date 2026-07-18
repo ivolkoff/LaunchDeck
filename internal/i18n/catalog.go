@@ -99,7 +99,7 @@ var catalog = map[string]struct{ en, ru string }{
 	"help.actions.confirm": {"  y/Enter n/Esc  confirm / cancel a prompt", "  y/Enter n/Esc  подтвердить / отменить"},
 	"help.actions.load":    {"  L            load a plist (bootstrap)", "  L            загрузить plist (bootstrap)"},
 	"help.view":            {"View", "Вид"},
-	"help.view.filter":     {"  /            filter by name        d   user ↔ user+system", "  /            фильтр по имени       d   user ↔ user+system"},
+	"help.view.filter":     {"  / f          filter (regex, live)   d   user ↔ user+system", "  / f          фильтр (regex, живой)  d   user ↔ user+system"},
 	"help.view.sort":       {"  s / S        sort key / direction  r   refresh now", "  s / S        сортировка / порядок  r   обновить"},
 	"help.view.mouse":      {"  m            capture mouse (click · wheel · divider) — off = drag selects text", "  m            захват мыши (клик · колесо · разделитель) — выкл = drag выделяет"},
 	"help.view.help":       {"  ?            this help             q / Ctrl-C  quit (saves)", "  ?            эта справка           q / Ctrl-C  выход (сохр.)"},
