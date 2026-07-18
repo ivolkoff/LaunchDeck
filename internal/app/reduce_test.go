@@ -415,3 +415,16 @@ func TestLogLinesReplacesNotAppends(t *testing.T) {
 		t.Fatalf("second snapshot should replace the ring, got %#v", s.LogRing)
 	}
 }
+
+func TestSelectClearsActionStatus(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(loaded(
+		svc("com.a", launchctl.GUIDomain(501), 1),
+		svc("com.b", launchctl.GUIDomain(501), 2),
+	), s)
+	s.StatusMsg = "restart ok" // as if an action just finished on com.a
+	s = Reduce(SelectService{Label: "com.b"}, s)
+	if s.StatusMsg != "" {
+		t.Fatalf("action status should clear on selecting another service, got %q", s.StatusMsg)
+	}
+}

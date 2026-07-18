@@ -343,6 +343,9 @@ func reduceSelect(label string, s AppState) AppState {
 	s.LogRing = nil
 	s.TailIdentity = ""
 	s.Scroll.Log = 0
+	// An action's status (e.g. "restart ok") belongs to the service it ran on;
+	// clear it on navigation so it doesn't linger over a different selection.
+	s.StatusMsg = ""
 	vis := s.visible()
 	s.Scroll.List = scrollToKeepVisible(s.Scroll.List, indexOfLabel(vis, label), s.ListViewportH, len(vis))
 	return s
