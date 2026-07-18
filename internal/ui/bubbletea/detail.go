@@ -99,27 +99,35 @@ func wrapBody(s string, w int) string {
 	return strings.TrimRight(lipgloss.NewStyle().Width(w).Render(s), "\n")
 }
 
-// numberedWrap word-wraps body to width w with a right-aligned line-number
-// gutter (1-based, per logical line). Wrapped continuation rows keep a blank
-// gutter so the content stays aligned, like an editor's line numbers.
+// gutterStyle shades the Raw tab's line-number column so it reads as a separate
+// band from the code, with a space of padding on each side.
+var gutterStyle = lipgloss.NewStyle().
+	Background(lipgloss.Color("238")).
+	Foreground(lipgloss.Color("250"))
+
+// numberedWrap word-wraps body to width w with a right-aligned, shaded
+// line-number gutter (1-based, per logical line). Wrapped continuation rows keep
+// a blank shaded gutter so the content stays aligned, like an editor.
 func numberedWrap(body string, w int) []string {
 	logical := strings.Split(body, "\n")
-	gw := len(strconv.Itoa(len(logical))) // gutter digits
+	gw := len(strconv.Itoa(len(logical))) // number digits
 	if gw < 1 {
 		gw = 1
 	}
-	gutter := gw + 1 // digits + one separating space
-	cw := w - gutter
+	gutterW := gw + 2 // one pad space, digits, one pad space
+	cw := w - gutterW - 1
 	if cw < 1 {
 		cw = 1
 	}
+	blank := gutterStyle.Render(strings.Repeat(" ", gutterW))
 	var out []string
 	for i, line := range logical {
 		for j, wl := range strings.Split(wrapBody(line, cw), "\n") {
 			if j == 0 {
-				out = append(out, fmt.Sprintf("%*d %s", gw, i+1, wl))
+				num := gutterStyle.Render(fmt.Sprintf(" %*d ", gw, i+1))
+				out = append(out, num+" "+wl)
 			} else {
-				out = append(out, strings.Repeat(" ", gutter)+wl)
+				out = append(out, blank+" "+wl)
 			}
 		}
 	}

@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
@@ -212,12 +213,19 @@ func TestRawTabHasLineNumbers(t *testing.T) {
 	if len(lines) < 3 {
 		t.Fatalf("expected 3 numbered rows, got %d", len(lines))
 	}
-	// gutter is right-aligned; the number then a space then content.
-	if !strings.HasPrefix(strings.TrimLeft(lines[0], " "), "1 first line") {
-		t.Errorf("row 0 missing line number: %q", lines[0])
+	// The gutter is ANSI-shaded; compare on the plain (style-stripped) text.
+	plain := func(s string) string { return strings.Join(strings.Fields(ansi.Strip(s)), " ") }
+	if got := plain(lines[0]); !strings.HasPrefix(got, "1 first line") {
+		t.Errorf("row 0 missing line number: %q", got)
 	}
-	if !strings.HasPrefix(strings.TrimLeft(lines[2], " "), "3 third line") {
-		t.Errorf("row 2 missing line number: %q", lines[2])
+	if got := plain(lines[2]); !strings.HasPrefix(got, "3 third line") {
+		t.Errorf("row 2 missing line number: %q", got)
+	}
+	// Every row still fits the panel width including the shaded gutter.
+	for i, l := range lines {
+		if w := lipgloss.Width(l); w > 40 {
+			t.Errorf("raw row %d width %d > 40", i, w)
+		}
 	}
 }
 
