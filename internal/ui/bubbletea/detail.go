@@ -93,14 +93,14 @@ func detailBody(vm app.DetailVM) string {
 			body = vm.Err
 		default:
 			body = strings.Join([]string{
-				"label:     " + vm.Label,
-				"domain:    " + vm.Domain,
-				"pid:       " + vm.PID,
-				"last exit: " + vm.LastExit,
-				"run:       " + vm.RunState,
-				"enable:    " + vm.EnableState,
-				"program:   " + vm.Program,
-				"plist:     " + vm.Plist,
+				"Label:     " + vm.Label,
+				"Domain:    " + vm.Domain,
+				"PID:       " + vm.PID,
+				"Last exit: " + vm.LastExit,
+				"Run:       " + vm.RunState,
+				"Enable:    " + vm.EnableState,
+				"Program:   " + vm.Program,
+				"Plist:     " + vm.Plist,
 			}, "\n")
 		}
 	case app.TabLogs:
