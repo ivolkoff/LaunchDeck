@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 func loaded(svcs ...launchctl.Service) ServicesLoaded { return ServicesLoaded{Services: svcs} }

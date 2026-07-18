@@ -15,12 +15,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/volkoffskij/launchdeck/internal/app"
-	"github.com/volkoffskij/launchdeck/internal/config"
-	"github.com/volkoffskij/launchdeck/internal/i18n"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
-	"github.com/volkoffskij/launchdeck/internal/session"
-	ui "github.com/volkoffskij/launchdeck/internal/ui/bubbletea"
+	"github.com/ivolkoff/launchdeck/internal/app"
+	"github.com/ivolkoff/launchdeck/internal/config"
+	"github.com/ivolkoff/launchdeck/internal/i18n"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/session"
+	ui "github.com/ivolkoff/launchdeck/internal/ui/bubbletea"
 )
 
 // version is overridden at build time via -ldflags "-X main.version=<tag>".
@@ -98,7 +98,7 @@ Press ? inside the app for the full keymap.`
 func crashMessage(v any, version string) string {
 	val := strings.ReplaceAll(fmt.Sprintf("%v", v), "\n", " ")
 	return version + " crashed: " + val +
-		"\nplease report: https://github.com/volkoffskij/launchdeck/issues"
+		"\nplease report: https://github.com/ivolkoff/launchdeck/issues"
 }
 
 func main() {

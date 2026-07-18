@@ -48,7 +48,7 @@ func TestHelpText(t *testing.T) {
 }
 
 func TestCrashMessage(t *testing.T) {
-	const url = "please report: https://github.com/volkoffskij/launchdeck/issues"
+	const url = "please report: https://github.com/ivolkoff/launchdeck/issues"
 
 	got := crashMessage("boom", "launchdeck v1.2.3")
 	want := "launchdeck v1.2.3 crashed: boom\n" + url

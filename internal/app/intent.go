@@ -1,6 +1,6 @@
 package app
 
-import "github.com/volkoffskij/launchdeck/internal/launchctl"
+import "github.com/ivolkoff/launchdeck/internal/launchctl"
 
 // Msg is anything reduce ingests: a user Intent or an async data message.
 type Msg interface{ isMsg() }

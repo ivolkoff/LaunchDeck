@@ -3,8 +3,8 @@ package app
 import (
 	"strings"
 
-	"github.com/volkoffskij/launchdeck/internal/i18n"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/i18n"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 // verb returns the current-language word for an action (e.g. "restart" /

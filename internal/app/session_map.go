@@ -1,6 +1,6 @@
 package app
 
-import "github.com/volkoffskij/launchdeck/internal/session"
+import "github.com/ivolkoff/launchdeck/internal/session"
 
 func FromSession(sess session.Session, uid int) AppState {
 	s := NewState(uid)

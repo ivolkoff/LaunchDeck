@@ -3,8 +3,8 @@ package app
 import (
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/i18n"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/i18n"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 func TestDeriveRussianPlaceholder(t *testing.T) {

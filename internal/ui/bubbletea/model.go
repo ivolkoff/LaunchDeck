@@ -9,9 +9,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	zone "github.com/lrstanley/bubblezone"
 
-	"github.com/volkoffskij/launchdeck/internal/app"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
-	"github.com/volkoffskij/launchdeck/internal/session"
+	"github.com/ivolkoff/launchdeck/internal/app"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/session"
 )
 
 type Model struct {

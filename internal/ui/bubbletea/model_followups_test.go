@@ -3,8 +3,8 @@ package bubbletea
 import (
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/app"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/app"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 // A selection restored from a saved session is set at construction, so no

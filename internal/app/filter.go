@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 func applyFilter(in []launchctl.Service, f Filters, uid int) []launchctl.Service {

@@ -10,9 +10,9 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/muesli/termenv"
 
-	"github.com/volkoffskij/launchdeck/internal/app"
-	"github.com/volkoffskij/launchdeck/internal/i18n"
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/app"
+	"github.com/ivolkoff/launchdeck/internal/i18n"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 // driveSized builds a Model, runs Init (arms bubblezone), and applies a window

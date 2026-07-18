@@ -31,3 +31,6 @@ go.work.sum
 
 # built binary
 /launchdeck
+
+# goreleaser build output
+/dist/

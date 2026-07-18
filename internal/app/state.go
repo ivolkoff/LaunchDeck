@@ -1,6 +1,6 @@
 package app
 
-import "github.com/volkoffskij/launchdeck/internal/launchctl"
+import "github.com/ivolkoff/launchdeck/internal/launchctl"
 
 type Focus int
 

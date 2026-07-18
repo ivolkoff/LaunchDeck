@@ -6,7 +6,21 @@ enable/disable/load/unload actions — with mouse support and session restore.
 
 Single static Go binary, no background daemon.
 
+## Install
+
+With Go 1.24+ on macOS:
+
+```bash
+go install github.com/ivolkoff/launchdeck/cmd/launchdeck@latest
+```
+
+Or download a prebuilt macOS binary (Intel `amd64` or Apple Silicon `arm64`)
+from the [Releases](https://github.com/ivolkoff/launchdeck/releases) page,
+unpack the archive, and put `launchdeck` on your `PATH`.
+
 ## Build
+
+From a clone:
 
 ```bash
 go build -o launchdeck ./cmd/launchdeck

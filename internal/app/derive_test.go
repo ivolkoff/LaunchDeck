@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 func TestDeriveLoadingPlaceholder(t *testing.T) {

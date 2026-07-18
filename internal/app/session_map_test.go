@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/session"
+	"github.com/ivolkoff/launchdeck/internal/session"
 )
 
 func TestFromSessionClampsUnknownEnums(t *testing.T) {

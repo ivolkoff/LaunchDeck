@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 
-	"github.com/volkoffskij/launchdeck/internal/app"
-	"github.com/volkoffskij/launchdeck/internal/i18n"
+	"github.com/ivolkoff/launchdeck/internal/app"
+	"github.com/ivolkoff/launchdeck/internal/i18n"
 )
 
 // renderDetail renders a box whose TOTAL OUTER size (including the border)

@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/volkoffskij/launchdeck/internal/launchctl"
+	"github.com/ivolkoff/launchdeck/internal/launchctl"
 )
 
 func svc(label string, dom launchctl.Domain, pid int) launchctl.Service {
