@@ -163,7 +163,9 @@ func startTUI() int {
 	if p, err := ui.ThemePath(); err == nil {
 		m = m.WithTheme(ui.LoadTheme(p))
 	}
-	prog := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	// Mouse capture starts OFF so a plain drag selects text natively, like a text
+	// editor. Press `m` in the UI to capture the mouse for clicks/wheel/divider.
+	prog := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := prog.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "launchdeck:", err)
 		return 1

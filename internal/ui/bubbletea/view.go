@@ -172,7 +172,7 @@ func (m Model) renderHelp() string {
 		sec("View"),
 		"  /            filter by name        d   user ↔ user+system",
 		"  s / S        sort key / direction  r   refresh now",
-		"  m            release mouse for native text select (drag + ⌘C)",
+		"  m            capture mouse (click · wheel · divider) — off = drag selects text",
 		"  ?            this help             q / Ctrl-C  quit (saves)",
 		"",
 		sec("Mouse") + "  click rows/tabs/buttons · wheel scroll · drag the divider to resize",

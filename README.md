@@ -71,22 +71,24 @@ otherwise.
 | `d`                       | toggle domain scope: user only ↔ user + system      |
 | `s` / `S`                 | cycle sort key / toggle sort direction              |
 | `L`                       | open the load (bootstrap) plist-path prompt         |
-| `m`                       | release/recapture the mouse for native text selection |
+| `m`                       | capture / release the mouse (off by default → drag selects text) |
 | `r`                       | manual refresh                                      |
 | `q`, `Ctrl-C`             | save session and quit                               |
 
-To **select and copy text**, press `m` to release the mouse — the terminal's own
-selection (drag + ⌘C) works while released; the app's clicks/drag/wheel pause.
-Press `m` again to recapture the mouse.
+**Selecting and copying text** works out of the box: the mouse is not captured
+by default, so a plain drag selects text and ⌘C copies it, just like a text
+editor. Press `m` to **capture** the mouse for in-app clicks (rows, tabs,
+buttons), wheel scrolling, and dragging the divider; press `m` again to release
+it back to text selection.
 
 Inside the action picker: `s` Start, `r` Restart, `k` Stop, `e` Enable,
 `d` Disable, `u` Unload; `↑`/`↓` move the highlight, `Enter` picks it, `Esc`
 cancels. The status bar shows these keys on each button (`a→[s Start]…`).
 
-Mouse users can click sidebar rows, detail tabs, and the status-bar action
-buttons instead of using keys, scroll with the wheel, and **drag the divider**
-between the sidebar and detail panel to resize them (the panels won't shrink
-below a safe minimum).
+With the mouse captured (press `m`), you can click sidebar rows, detail tabs,
+and the status-bar action buttons instead of using keys, scroll with the wheel,
+and **drag the divider** between the sidebar and detail panel to resize them
+(the panels won't shrink below a safe minimum).
 
 ## Manual sudo checklist
 

@@ -29,7 +29,10 @@ type Model struct {
 }
 
 func New(st app.AppState, c *launchctl.Client) Model {
-	return Model{st: st, client: c, theme: DefaultTheme()}
+	// mouseOff by default: the mouse is not captured at startup, so a plain drag
+	// does native terminal text selection (like a text editor). Press `m` to
+	// capture the mouse for clicks/wheel/divider-drag.
+	return Model{st: st, client: c, theme: DefaultTheme(), mouseOff: true}
 }
 
 // WithTheme returns a copy of the model using the given theme.
