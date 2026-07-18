@@ -54,7 +54,7 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := raw.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		listH, logH := viewportHeights(m.height)
+		listH, logH := m.viewportHeights()
 		m.st = app.Reduce(app.WindowResized{Width: msg.Width, ListViewportH: listH, LogViewportH: logH}, m.st)
 		(&m).refreshDetailCache() // width changed → re-wrap
 		return m, nil

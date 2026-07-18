@@ -22,14 +22,20 @@ func (m Model) render() string {
 	vm := app.Derive(m.st)
 	sidebarW := m.sidebarW()
 	detailW := m.width - sidebarW - 1
-	bodyH := m.height - 1 // status row
+	bodyH := m.height - 1 - m.headerRows() // status row (+ optional header row)
 
 	sidebar := m.renderList(vm.List, sidebarW, bodyH)
 	detail := m.renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
 	divider := zone.Mark("divider", " ")
 	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, divider, detail)
 	status := m.renderStatus(vm.Status, m.width)
-	frame := zone.Scan(lipgloss.JoinVertical(lipgloss.Left, body, status))
+
+	var parts []string
+	if m.theme.Header {
+		parts = append(parts, m.renderHeader())
+	}
+	parts = append(parts, body, status)
+	frame := zone.Scan(lipgloss.JoinVertical(lipgloss.Left, parts...))
 	// Hard final gate: no sub-renderer bug can push the frame past the terminal.
 	// zone.Scan already stripped the zone markers, so the frame is plain ANSI+text
 	// and safe to clamp line-by-line. This is a belt-and-suspenders guarantee on
@@ -105,7 +111,7 @@ func (m Model) clampLogScroll() int {
 	if m.st.Scroll.Log == 0 {
 		return 0 // already valid; nothing to clamp down to
 	}
-	_, logH := viewportHeights(m.height)
+	_, logH := m.viewportHeights()
 	lines := len(m.detailCache) // the cache is fresh whenever this runs
 	maxStart := lines - logH
 	if maxStart < 0 {
@@ -121,12 +127,26 @@ func (m Model) clampLogScroll() int {
 	return s
 }
 
+// headerRows is 1 when the title bar is shown, else 0.
+func (m Model) headerRows() int {
+	if m.theme.Header {
+		return 1
+	}
+	return 0
+}
+
+// renderHeader draws the single-row title bar.
+func (m Model) renderHeader() string {
+	return m.theme.tabActive().Bold(true).Width(m.width).Render(
+		truncateLine(" LaunchDeck — launchctl services", m.width))
+}
+
 // viewportHeights returns the content-row budgets renderList and
-// renderDetail's Logs/Raw tabs end up with for a terminal of the given
-// height. model.go's WindowSizeMsg handler feeds these into reduce so
-// Scroll.List/Scroll.Log windowing agrees with what render() actually draws.
-func viewportHeights(height int) (listH, logH int) {
-	bodyH := height - 1 // status row
+// renderDetail's Logs/Raw tabs end up with. model.go's WindowSizeMsg handler
+// feeds these into reduce so Scroll.List/Scroll.Log windowing agrees with what
+// render() actually draws — so it must account for the optional header row.
+func (m Model) viewportHeights() (listH, logH int) {
+	bodyH := m.height - 1 - m.headerRows() // status row (+ optional header)
 	frame := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).GetVerticalFrameSize()
 	listH = bodyH - frame
 	if listH < 1 {

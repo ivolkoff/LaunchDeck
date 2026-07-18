@@ -441,3 +441,25 @@ func firstSGR(s string) string {
 	}
 	return ""
 }
+
+func TestHeaderToggle(t *testing.T) {
+	for _, hdr := range []bool{true, false} {
+		th := DefaultTheme()
+		th.Header = hdr
+		m := New(app.NewState(501), nil).WithTheme(th)
+		m.Init()
+		var md tea.Model = m
+		md, _ = md.(Model).Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+		out := md.(Model).View()
+		if w, h := lipgloss.Width(out), len(strings.Split(out, "\n")); w > 100 || h > 30 {
+			t.Errorf("header=%v overflow: %dx%d", hdr, w, h)
+		}
+		firstRow := strings.Split(out, "\n")[0]
+		if hdr && !strings.Contains(firstRow, "LaunchDeck") {
+			t.Errorf("header on: title expected in first row, got %q", ansi.Strip(firstRow))
+		}
+		if !hdr && strings.Contains(firstRow, "LaunchDeck — launchctl") {
+			t.Error("header off: title should not be shown")
+		}
+	}
+}

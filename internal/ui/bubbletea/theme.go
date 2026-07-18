@@ -25,6 +25,10 @@ type Theme struct {
 	GutterBg    string `json:"gutter_bg"`
 	Accent      string `json:"accent"`
 	Muted       string `json:"muted"`
+
+	// Header shows the title bar at the top; on by default. Set "header": false
+	// in the config to hide it. (Absent in a partial file keeps the default.)
+	Header bool `json:"header"`
 }
 
 // DefaultTheme is the built-in palette used when there is no theme file (or for
@@ -43,6 +47,7 @@ func DefaultTheme() Theme {
 		GutterBg:    "238",
 		Accent:      "213",
 		Muted:       "244",
+		Header:      true,
 	}
 }
 
