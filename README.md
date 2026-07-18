@@ -116,3 +116,8 @@ Note: only explicit **actions** offer a sudo retry. Inspecting a `system`
 service you can't read shows a non-modal "requires sudo to inspect — run
 launchdeck with sudo" in the detail panel; enumerating system services without
 root simply omits them (run the whole app under `sudo` to see them).
+
+## License
+
+Copyright (C) 2026 volkoffskij.
+GPL-3.0-or-later — see [`LICENSE`](LICENSE).
