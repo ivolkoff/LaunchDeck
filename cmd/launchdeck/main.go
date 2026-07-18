@@ -36,7 +36,7 @@ func main() {
 	if p, err := ui.ThemePath(); err == nil {
 		m = m.WithTheme(ui.LoadTheme(p))
 	}
-	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "launchdeck:", err)
 		os.Exit(1)

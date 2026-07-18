@@ -95,8 +95,10 @@ func hitButton(msg tea.MouseMsg) (string, bool) {
 	return "", false
 }
 
+// hoveredPanel decides which panel a wheel event scrolls purely from the cursor
+// column — no zone lookups or Derive, so it stays cheap on a fast scroll.
 func (m Model) hoveredPanel(msg tea.MouseMsg) app.Focus {
-	if _, ok := m.hitRow(msg); ok {
+	if msg.X < m.sidebarW() {
 		return app.FocusSidebar
 	}
 	return app.FocusDetail

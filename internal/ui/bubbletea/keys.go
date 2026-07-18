@@ -96,7 +96,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.mouseOff {
 			return m, tea.DisableMouse
 		}
-		return m, tea.EnableMouseAllMotion
+		return m, tea.EnableMouseCellMotion
 	}
 	return m, nil
 }
