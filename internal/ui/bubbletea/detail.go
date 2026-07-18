@@ -31,8 +31,26 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	if bodyH < 1 {
 		bodyH = 1
 	}
-	var body string
-	scrollable := false
+	body, scrollable := detailBody(vm)
+	if scrollable {
+		// Word-wrap the log/raw body to the panel width, then window it. lipgloss
+		// wraps at spaces and only hard-breaks a token longer than the panel, so
+		// a long log line reads on several rows instead of being cut mid-word.
+		// Every wrapped row participates in the scroll offset.
+		body = scrollLines(wrapBody(body, contentW), bodyH, logScroll)
+	} else {
+		// The metadata summary is not scrollable: keep one row per field by
+		// truncating, so a long path can't push fields off the bottom.
+		body = truncateLine(body, contentW)
+	}
+	content := tabs + "\n" + body
+	return style.Render(content)
+}
+
+// detailBody builds the raw (unwrapped) body text for the active tab and reports
+// whether it is a scrollable log/raw view. Shared by renderDetail and the scroll
+// clamp so both agree on what is being shown.
+func detailBody(vm app.DetailVM) (body string, scrollable bool) {
 	switch vm.ActiveTab {
 	case app.TabMetadata:
 		if vm.Mode == "loading" {
@@ -65,16 +83,16 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	if vm.Mode == "gone" {
 		body = "(gone) — service no longer present\n\n" + body
 	}
-	// Truncate every body line to the panel width BEFORE windowing: lipgloss
-	// wraps a line wider than Width(), turning one log line into several screen
-	// rows and blowing the box past its height budget. Truncating keeps
-	// one line = one row, so the windowing below is exact.
-	body = truncateLine(body, contentW)
-	if scrollable {
-		body = scrollLines(body, bodyH, logScroll)
+	return body, scrollable
+}
+
+// wrapBody word-wraps s to w columns (space-aware; a token wider than w is
+// hard-broken). Returns a newline-joined block of rows each at most w wide.
+func wrapBody(s string, w int) string {
+	if w < 1 {
+		w = 1
 	}
-	content := tabs + "\n" + body
-	return style.Render(content)
+	return strings.TrimRight(lipgloss.NewStyle().Width(w).Render(s), "\n")
 }
 
 // scrollLines slices body to the visible window starting at logScroll lines

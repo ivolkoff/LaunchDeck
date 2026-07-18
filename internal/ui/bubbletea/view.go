@@ -20,7 +20,7 @@ func (m Model) render() string {
 			"terminal too small (need ≥60×20)")
 	}
 	vm := app.Derive(m.st)
-	sidebarW := clampInt(int(float64(m.width)*0.33), 24, 48)
+	sidebarW := sidebarWidth(m.width)
 	detailW := m.width - sidebarW - 1
 	bodyH := m.height - 1 // status row
 
@@ -68,6 +68,49 @@ func clampInt(v, lo, hi int) int {
 		return hi
 	}
 	return v
+}
+
+// sidebarWidth is the sidebar's outer column budget for a terminal of the given
+// width: a third, clamped to [24, 48].
+func sidebarWidth(width int) int {
+	return clampInt(int(float64(width)*0.33), 24, 48)
+}
+
+// detailContentW is the inner (inside-border) column budget of the detail panel
+// — the width the log/raw body is wrapped to. Kept in sync with render()'s own
+// sidebar/detail split so the scroll clamp wraps to exactly what is drawn.
+func detailContentW(width int) int {
+	frame := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).GetHorizontalFrameSize()
+	w := width - sidebarWidth(width) - 1 - frame
+	if w < 1 {
+		w = 1
+	}
+	return w
+}
+
+// clampLogScroll bounds Scroll.Log to the active tab's wrapped content: at most
+// max(0, wrappedLines - logViewportRows). For a non-scrollable tab (metadata)
+// it forces 0. Returns the clamped offset; never inflates.
+func (m Model) clampLogScroll() int {
+	body, scrollable := detailBody(app.Derive(m.st).Detail)
+	if !scrollable {
+		return 0
+	}
+	_, logH := viewportHeights(m.height)
+	wrapped := wrapBody(body, detailContentW(m.width))
+	lines := len(strings.Split(wrapped, "\n"))
+	maxStart := lines - logH
+	if maxStart < 0 {
+		maxStart = 0
+	}
+	s := m.st.Scroll.Log
+	if s < 0 {
+		s = 0
+	}
+	if s > maxStart {
+		s = maxStart
+	}
+	return s
 }
 
 // viewportHeights returns the content-row budgets renderList and

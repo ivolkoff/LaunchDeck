@@ -72,6 +72,10 @@ func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 		m.pollBusy = false
 	}
 	m.st = app.Reduce(msg, m.st)
+	// reduce floors Scroll.Log at 0 but can't bound it above (it doesn't know the
+	// wrapped line count, which needs the width). Bound it here so scrolling past
+	// the end doesn't inflate the offset and lag the next scroll-up.
+	m.st.Scroll.Log = m.clampLogScroll()
 	cmds := (&m).followUps(msg, prevSel)
 	(&m).maybeSave()
 	return m, tea.Batch(cmds...)

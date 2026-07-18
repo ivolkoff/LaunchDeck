@@ -131,6 +131,75 @@ func TestClampFrameHardBounds(t *testing.T) {
 	}
 }
 
+// TestWrapBodyByWord asserts long log/raw lines wrap at word boundaries, only
+// hard-breaking a single token wider than the panel.
+func TestWrapBodyByWord(t *testing.T) {
+	spaced := "alpha beta gamma delta epsilon zeta eta theta"
+	rows := strings.Split(wrapBody(spaced, 20), "\n")
+	if len(rows) < 2 {
+		t.Fatalf("expected the spaced line to wrap onto multiple rows, got %d", len(rows))
+	}
+	for i, r := range rows {
+		if w := lipgloss.Width(r); w > 20 {
+			t.Errorf("row %d width %d > 20", i, w)
+		}
+		// no row may start or end by splitting a word: a wrapped-at-space row,
+		// trimmed, must consist of whole words from the input.
+		for _, word := range strings.Fields(strings.TrimSpace(r)) {
+			if !strings.Contains(spaced, word) {
+				t.Errorf("row %d contains a split word %q", i, word)
+			}
+		}
+	}
+
+	// A single token longer than the panel is hard-broken (unavoidable), but
+	// every piece still fits the width.
+	long := "supercalifragilisticexpialidocious_plus_more"
+	for i, r := range strings.Split(wrapBody(long, 20), "\n") {
+		if w := lipgloss.Width(r); w > 20 {
+			t.Errorf("long-token row %d width %d > 20", i, w)
+		}
+	}
+}
+
+// TestLogScrollNoRunaway reproduces the "scroll up lags" bug: scrolling down far
+// past the end must not inflate Scroll.Log beyond the last page, so a single
+// scroll-up immediately moves the window back.
+func TestLogScrollNoRunaway(t *testing.T) {
+	st := stateWithLogs(1, 60, 30, app.TabLogs)
+	md := driveSized(st, 120, 40)
+
+	// Scroll down way past the end (far more than the content).
+	for i := 0; i < 100; i++ {
+		next, _ := md.Update(app.ScrollMsg{Panel: app.FocusDetail, Delta: 5})
+		md = next.(Model)
+	}
+	atBottom := md.st.Scroll.Log
+
+	firstLogLine := func(m Model) string {
+		for _, l := range strings.Split(m.View(), "\n") {
+			if i := strings.Index(l, "LN"); i >= 0 {
+				return l[i : i+7]
+			}
+		}
+		return "NONE"
+	}
+	before := firstLogLine(md)
+
+	// One scroll-up must move the visible window immediately.
+	next, _ := md.Update(app.ScrollMsg{Panel: app.FocusDetail, Delta: -1})
+	md = next.(Model)
+	after := firstLogLine(md)
+
+	if md.st.Scroll.Log != atBottom-1 {
+		t.Errorf("scroll offset runaway: at bottom %d, after one up %d (want %d)",
+			atBottom, md.st.Scroll.Log, atBottom-1)
+	}
+	if before == after {
+		t.Errorf("scroll-up did not move the window immediately (before==after==%s)", before)
+	}
+}
+
 // TestLogScrollMovesWindow guards that scrolling the detail panel actually
 // changes which log lines are shown (the offset is applied in the render, not
 // just stored in state).
