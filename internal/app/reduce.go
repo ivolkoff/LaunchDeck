@@ -320,7 +320,7 @@ func clampSidebar(w, termW int) int {
 		w = MinSidebarWidth
 	}
 	if termW > 0 {
-		max := termW - MinDetailWidth - 1 // 1 col for the divider
+		max := termW - MinDetailWidth // panels sit flush; no separate divider column
 		if max < MinSidebarWidth {
 			max = MinSidebarWidth
 		}

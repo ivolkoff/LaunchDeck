@@ -411,8 +411,12 @@ func TestLogsHaveLineNumbers(t *testing.T) {
 	if len(lines) < 3 {
 		t.Fatalf("want 3 numbered log rows, got %d", len(lines))
 	}
-	if !strings.HasPrefix(strings.TrimLeft(ansi.Strip(lines[0]), " "), "1 ") {
-		t.Errorf("logs missing line numbers: %q", ansi.Strip(lines[0]))
+	// Logs are newest-first, so numbers descend: top = 3, bottom = 1.
+	if !strings.HasPrefix(strings.TrimLeft(ansi.Strip(lines[0]), " "), "3 ") {
+		t.Errorf("top log line should be numbered 3 (newest): %q", ansi.Strip(lines[0]))
+	}
+	if !strings.HasPrefix(strings.TrimLeft(ansi.Strip(lines[2]), " "), "1 ") {
+		t.Errorf("bottom log line should be numbered 1 (oldest): %q", ansi.Strip(lines[2]))
 	}
 }
 

@@ -17,7 +17,9 @@ import (
 // of being cut off, and content past the fold is reachable by scrolling.
 func (m Model) renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	th := m.theme
-	style := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).BorderForeground(th.border())
+	// No left border: the sidebar's right border is the single-column divider.
+	style := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).
+		BorderLeft(false).BorderForeground(th.border())
 	contentW := w - style.GetHorizontalFrameSize()
 	contentH := h - style.GetVerticalFrameSize()
 	if contentW < 1 {
@@ -54,13 +56,14 @@ func detailLines(vm app.DetailVM, contentW int, th Theme) []string {
 	body := detailBody(vm)
 	switch vm.ActiveTab {
 	case app.TabRaw:
-		return numberedWrap(body, contentW, th)
+		return numberedWrap(body, contentW, th, false)
 	case app.TabLogs:
 		if vm.LogNote != "" || len(vm.LogLines) == 0 {
 			return strings.Split(wrapBody(body, contentW), "\n") // a note, not log lines
 		}
-		// Numbered like an editor, with the [out]/[err] tag colour-coded.
-		return numberedWrap(colorLogTags(body, th), contentW, th)
+		// Numbered like an editor, tag colour-coded. Logs are newest-first, so the
+		// numbers descend (top = N, bottom = 1) to match the chronological order.
+		return numberedWrap(colorLogTags(body, th), contentW, th, true)
 	default:
 		return strings.Split(wrapBody(body, contentW), "\n")
 	}
@@ -128,12 +131,15 @@ func wrapBody(s string, w int) string {
 }
 
 // numberedWrap word-wraps body to width w with a right-aligned, shaded
-// line-number gutter (1-based, per logical line). Wrapped continuation rows keep
-// a blank shaded gutter so the content stays aligned, like an editor.
-func numberedWrap(body string, w int, th Theme) []string {
+// line-number gutter (per logical line). Wrapped continuation rows keep a blank
+// shaded gutter so the content stays aligned, like an editor. When reverse is
+// set the numbers descend from N at the top to 1 at the bottom (used for the
+// newest-first Logs tab so the numbers track chronological order).
+func numberedWrap(body string, w int, th Theme, reverse bool) []string {
 	gutterStyle := th.gutter()
 	logical := strings.Split(body, "\n")
-	gw := len(strconv.Itoa(len(logical))) // number digits
+	n := len(logical)
+	gw := len(strconv.Itoa(n)) // number digits
 	if gw < 1 {
 		gw = 1
 	}
@@ -145,10 +151,14 @@ func numberedWrap(body string, w int, th Theme) []string {
 	blank := gutterStyle.Render(strings.Repeat(" ", gutterW))
 	var out []string
 	for i, line := range logical {
+		num := i + 1
+		if reverse {
+			num = n - i
+		}
 		for j, wl := range strings.Split(wrapBody(line, cw), "\n") {
 			if j == 0 {
-				num := gutterStyle.Render(fmt.Sprintf(" %*d ", gw, i+1))
-				out = append(out, num+" "+wl)
+				g := gutterStyle.Render(fmt.Sprintf(" %*d ", gw, num))
+				out = append(out, g+" "+wl)
 			} else {
 				out = append(out, blank+" "+wl)
 			}

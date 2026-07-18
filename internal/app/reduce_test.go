@@ -446,8 +446,8 @@ func TestClampSidebar(t *testing.T) {
 		t.Errorf("below min: got %d want %d", got, MinSidebarWidth)
 	}
 	// too wide -> leaves room for detail + divider
-	if got := clampSidebar(200, 100); got != 100-MinDetailWidth-1 {
-		t.Errorf("over max: got %d want %d", got, 100-MinDetailWidth-1)
+	if got := clampSidebar(200, 100); got != 100-MinDetailWidth {
+		t.Errorf("over max: got %d want %d", got, 100-MinDetailWidth)
 	}
 	// tiny terminal -> pinned to min (never negative)
 	if got := clampSidebar(50, 30); got != MinSidebarWidth {
@@ -463,12 +463,12 @@ func TestSetSidebarWidthClampsAgainstTerm(t *testing.T) {
 	s := NewState(501)
 	s = Reduce(WindowResized{Width: 100, ListViewportH: 20, LogViewportH: 18}, s)
 	s = Reduce(SetSidebarWidth{W: 999}, s) // absurd drag
-	if s.SidebarWidth != 100-MinDetailWidth-1 {
+	if s.SidebarWidth != 100-MinDetailWidth {
 		t.Fatalf("drag should clamp to leave detail room: got %d", s.SidebarWidth)
 	}
 	// a later shrink re-clamps the stored width
 	s = Reduce(WindowResized{Width: 60, ListViewportH: 20, LogViewportH: 18}, s)
-	if s.SidebarWidth > 60-MinDetailWidth-1 {
+	if s.SidebarWidth > 60-MinDetailWidth {
 		t.Fatalf("resize should re-clamp sidebar: got %d", s.SidebarWidth)
 	}
 }

@@ -24,13 +24,14 @@ func (m Model) render() string {
 	}
 	vm := app.Derive(m.st)
 	sidebarW := m.sidebarW()
-	detailW := m.width - sidebarW - 1
+	detailW := m.width - sidebarW
 	bodyH := m.height - 1 - m.headerRows() // status row (+ optional header row)
 
 	sidebar := m.renderList(vm.List, sidebarW, bodyH)
 	detail := m.renderDetail(vm.Detail, detailW, bodyH, m.st.Scroll.Log)
-	divider := zone.Mark("divider", " ")
-	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, divider, detail)
+	// Panels sit flush: the sidebar's right border is the single-column divider
+	// (the detail drops its left border). Draggable by cursor column (see mouse).
+	body := lipgloss.JoinHorizontal(lipgloss.Top, sidebar, detail)
 	status := m.renderStatus(vm.Status, m.width)
 
 	var parts []string
@@ -99,8 +100,9 @@ func (m Model) sidebarW() int {
 // — the width the log/raw body is wrapped to. Kept in sync with render()'s own
 // sidebar/detail split so the scroll clamp wraps to exactly what is drawn.
 func (m Model) detailContentW() int {
-	frame := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).GetHorizontalFrameSize()
-	w := m.width - m.sidebarW() - 1 - frame
+	// Detail panel outer width = m.width - sidebarW; it draws only a right border
+	// (left border dropped so the sidebar's right border is the divider).
+	w := m.width - m.sidebarW() - 1
 	if w < 1 {
 		w = 1
 	}
