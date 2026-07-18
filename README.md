@@ -1,5 +1,7 @@
 # LaunchDeck
 
+**English** | [Русский](README.ru.md)
+
 A macOS terminal UI (TUI) for `launchctl`: browse GUI and system services in a
 sidebar, inspect metadata/logs/raw `print` output, and run start/restart/stop/
 enable/disable/load/unload actions — with mouse support and session restore.
