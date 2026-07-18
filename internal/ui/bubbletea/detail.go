@@ -65,6 +65,11 @@ func renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	if vm.Mode == "gone" {
 		body = "(gone) — service no longer present\n\n" + body
 	}
+	// Truncate every body line to the panel width BEFORE windowing: lipgloss
+	// wraps a line wider than Width(), turning one log line into several screen
+	// rows and blowing the box past its height budget. Truncating keeps
+	// one line = one row, so the windowing below is exact.
+	body = truncateLine(body, contentW)
 	if scrollable {
 		body = scrollLines(body, bodyH, logScroll)
 	}
