@@ -128,6 +128,7 @@ func (m *Model) refreshDetailCache() {
 // applyIntent runs reduce, then fires any Cmd the new state implies.
 func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 	prevSel := m.st.Selected
+	prevFirstScan := m.st.FirstScanDone
 	if _, ok := msg.(app.ServicesLoaded); ok {
 		m.pollBusy = false
 	}
@@ -145,7 +146,7 @@ func (m Model) applyIntent(msg app.Msg) (tea.Model, tea.Cmd) {
 	}
 	// Session save is NOT done here (it would hit the disk on every scroll notch);
 	// it's debounced onto the 2s tick and forced on quit.
-	cmds := (&m).followUps(msg, prevSel)
+	cmds := (&m).followUps(msg, prevSel, prevFirstScan)
 	return m, tea.Batch(cmds...)
 }
 
@@ -161,10 +162,14 @@ func (m *Model) selectedService() (launchctl.Domain, string, bool) {
 // followUps fires the Cmds implied by the new state: a detail re-fetch when
 // selection changes, the launchctl Cmd behind a just-started action, and a
 // detail re-fetch after that action completes on the selected service.
-func (m *Model) followUps(msg app.Msg, prevSel string) []tea.Cmd {
+func (m *Model) followUps(msg app.Msg, prevSel string, prevFirstScan bool) []tea.Cmd {
 	var cmds []tea.Cmd
-	// Selection changed to a present, non-gone service → fetch detail.
-	if m.st.Selected != prevSel && m.st.Selected != "" && !m.st.Gone {
+	// Fetch detail when the selection changes to a present, non-gone service, or
+	// when the first scan just resolved a selection restored from the saved
+	// session: that selection is set at construction, so no SelectService msg
+	// fires for it and its detail would otherwise sit on "Loading…" forever.
+	firstScanResolved := !prevFirstScan && m.st.FirstScanDone
+	if (m.st.Selected != prevSel || firstScanResolved) && m.st.Selected != "" && !m.st.Gone {
 		if d, label, ok := m.selectedService(); ok {
 			cmds = append(cmds, detailCmd(m.client, d, label))
 		}
