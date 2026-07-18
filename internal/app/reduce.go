@@ -288,8 +288,8 @@ func reduceRunAction(a launchctl.ActionKind, s AppState) AppState {
 // built by the ui layer from ActionRunning + Selected (see Phase 4).
 func startAction(a launchctl.ActionKind, s AppState) AppState {
 	s.ActionRunning = true
-	s.StatusMsg = a.String() + "…"
-	s.pendingAction = a // stored so ui knows which verb to run
+	s.StatusMsg = verb(a) + "…" // localized verb; "…" is language-neutral
+	s.pendingAction = a         // stored so ui knows which verb to run
 	return s
 }
 

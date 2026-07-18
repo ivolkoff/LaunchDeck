@@ -31,3 +31,15 @@ func TestReduceRussianActionOK(t *testing.T) {
 		t.Errorf("ru action ok = %q, want %q", out.StatusMsg, "перезапуск: ок")
 	}
 }
+
+func TestStartActionRussianVerb(t *testing.T) {
+	// The action-start status ("restart…") must localize its verb too.
+	if got := startAction(launchctl.ActionRestart, NewState(501)).StatusMsg; got != "restart…" {
+		t.Errorf("en start = %q, want %q", got, "restart…")
+	}
+	i18n.SetLang(i18n.Ru)
+	t.Cleanup(func() { i18n.SetLang(i18n.En) })
+	if got := startAction(launchctl.ActionRestart, NewState(501)).StatusMsg; got != "перезапуск…" {
+		t.Errorf("ru start = %q, want %q", got, "перезапуск…")
+	}
+}
