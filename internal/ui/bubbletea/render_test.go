@@ -11,6 +11,7 @@ import (
 	"github.com/muesli/termenv"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
 )
 
@@ -472,6 +473,41 @@ func TestHeaderToggle(t *testing.T) {
 		}
 		if !hdr && strings.Contains(firstRow, "LaunchDeck — launchctl") {
 			t.Error("header off: title should not be shown")
+		}
+	}
+}
+
+func TestHelpOverlayEnglishGolden(t *testing.T) {
+	i18n.SetLang(i18n.En)
+	t.Cleanup(func() { i18n.SetLang(i18n.En) })
+	m := driveSized(app.NewState(501), 100, 40)
+	m.helpOpen = true
+	out := m.render()
+	for _, want := range []string{
+		"LaunchDeck — help",
+		"Navigation",
+		"switch focus: sidebar ↔ detail",
+		"press ? or Esc to close",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("help overlay missing %q", want)
+		}
+	}
+}
+
+func TestRussianRenderNoOverflow(t *testing.T) {
+	i18n.SetLang(i18n.Ru)
+	t.Cleanup(func() { i18n.SetLang(i18n.En) })
+	const w, h = 60, 20 // the documented minimum
+	m := driveSized(app.NewState(501), w, h)
+	out := m.render()
+	lines := strings.Split(out, "\n")
+	if len(lines) > h {
+		t.Fatalf("frame has %d lines, want ≤ %d", len(lines), h)
+	}
+	for i, l := range lines {
+		if lipgloss.Width(l) > w {
+			t.Errorf("line %d width %d > %d: %q", i, lipgloss.Width(l), w, l)
 		}
 	}
 }

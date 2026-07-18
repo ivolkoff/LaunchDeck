@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 	zone "github.com/lrstanley/bubblezone"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 )
 
 // renderDetail renders a box whose TOTAL OUTER size (including the border)
@@ -30,7 +32,7 @@ func (m Model) renderDetail(vm app.DetailVM, w, h, logScroll int) string {
 	}
 	style = style.Width(contentW).Height(contentH)
 	if vm.Mode == "empty" {
-		return style.Render(th.muted().Render("Select a service"))
+		return style.Render(th.muted().Render(i18n.T("detail.select")))
 	}
 	tabs := m.renderTabs(vm.ActiveTab)
 	bodyH := contentH - 1 // tabs line
@@ -91,20 +93,20 @@ func detailBody(vm app.DetailVM) string {
 	case app.TabMetadata:
 		switch vm.Mode {
 		case "loading":
-			body = "Loading detail…"
+			body = i18n.T("detail.loading")
 		case "error":
 			body = vm.Err
 		default:
-			body = strings.Join([]string{
-				"Label:     " + vm.Label,
-				"Domain:    " + vm.Domain,
-				"PID:       " + vm.PID,
-				"Last exit: " + vm.LastExit,
-				"Run:       " + vm.RunState,
-				"Enable:    " + vm.EnableState,
-				"Program:   " + vm.Program,
-				"Plist:     " + vm.Plist,
-			}, "\n")
+			body = metaBlock([][2]string{
+				{i18n.T("meta.label"), vm.Label},
+				{i18n.T("meta.domain"), vm.Domain},
+				{i18n.T("meta.pid"), vm.PID},
+				{i18n.T("meta.exit"), vm.LastExit},
+				{i18n.T("meta.run"), vm.RunState},
+				{i18n.T("meta.enable"), vm.EnableState},
+				{i18n.T("meta.program"), vm.Program},
+				{i18n.T("meta.plist"), vm.Plist},
+			})
 		}
 	case app.TabLogs:
 		if vm.LogNote != "" {
@@ -116,9 +118,27 @@ func detailBody(vm app.DetailVM) string {
 		body = vm.Raw
 	}
 	if vm.Mode == "gone" {
-		body = "(gone) — service no longer present\n\n" + body
+		body = i18n.T("detail.gone") + "\n\n" + body
 	}
 	return body
+}
+
+// metaBlock renders "Label:  value" rows with the colon-suffixed labels padded
+// to a common width so the values align, regardless of language. Two spaces
+// separate the widest label from its value.
+func metaBlock(rows [][2]string) string {
+	max := 0
+	for _, r := range rows {
+		if n := utf8.RuneCountInString(r[0]); n > max {
+			max = n
+		}
+	}
+	lines := make([]string, len(rows))
+	for i, r := range rows {
+		pad := max - utf8.RuneCountInString(r[0])
+		lines[i] = r[0] + ":" + strings.Repeat(" ", pad+2) + r[1]
+	}
+	return strings.Join(lines, "\n")
 }
 
 // wrapBody word-wraps s to w columns (space-aware; a token wider than w is
@@ -192,10 +212,10 @@ func windowLines(lines []string, vh, offset int) []string {
 }
 
 func (m Model) renderTabs(active app.Tab) string {
-	names := []string{"Metadata", "Logs", "Raw"}
+	names := []string{"Metadata", "Logs", "Raw"} // stable zone ids
 	var out []string
 	for i, n := range names {
-		s := " " + n + " "
+		s := " " + i18n.T("tab."+n) + " "
 		if app.Tab(i) == active {
 			s = m.theme.tabActive().Render(s)
 		} else {

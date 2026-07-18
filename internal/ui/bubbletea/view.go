@@ -7,6 +7,7 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 func (m Model) render() string {
 	if m.width < minWidth || m.height < minHeight {
 		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center,
-			"terminal too small (need ≥60×20)")
+			i18n.T("view.too_small"))
 	}
 	if m.helpOpen {
 		return m.renderHelp()
@@ -143,41 +144,41 @@ func (m Model) headerRows() int {
 // renderHeader draws the single-row title bar.
 func (m Model) renderHeader() string {
 	return m.theme.tabActive().Bold(true).Width(m.width).Render(
-		truncateLine(" LaunchDeck — launchctl services · ? help", m.width))
+		truncateLine(i18n.T("header.title"), m.width))
 }
 
 // renderHelp draws the centered help overlay listing every key and the mouse
 // actions. Any of ?/Esc/q closes it.
 func (m Model) renderHelp() string {
 	th := m.theme
-	title := th.accent().Bold(true).Render("LaunchDeck — help")
+	title := th.accent().Bold(true).Render(i18n.T("help.title"))
 	sec := func(s string) string { return th.accent().Render(s) }
 	body := strings.Join([]string{
 		title,
 		"",
-		sec("Navigation"),
-		"  ↑/k ↓/j      move selection (sidebar) · scroll (detail, by focus)",
-		"  Home/End     first / last row",
-		"  PgUp/PgDn    page up / down",
-		"  Tab          switch focus: sidebar ↔ detail",
-		"  1/2/3  ←/→   detail tabs: Metadata / Logs / Raw",
-		"  Ctrl-U/D     scroll detail ±10   ·   mouse wheel ±3",
+		sec(i18n.T("help.nav")),
+		i18n.T("help.nav.move"),
+		i18n.T("help.nav.homeend"),
+		i18n.T("help.nav.page"),
+		i18n.T("help.nav.tab"),
+		i18n.T("help.nav.tabs"),
+		i18n.T("help.nav.scroll"),
 		"",
-		sec("Actions") + " (on the selected service)",
-		"  a            action picker → s start · r restart · k stop",
-		"               e enable · d disable · u unload",
-		"  y/Enter n/Esc  confirm / cancel a prompt",
-		"  L            load a plist (bootstrap)",
+		sec(i18n.T("help.actions")) + i18n.T("help.actions.suffix"),
+		i18n.T("help.actions.picker1"),
+		i18n.T("help.actions.picker2"),
+		i18n.T("help.actions.confirm"),
+		i18n.T("help.actions.load"),
 		"",
-		sec("View"),
-		"  /            filter by name        d   user ↔ user+system",
-		"  s / S        sort key / direction  r   refresh now",
-		"  m            capture mouse (click · wheel · divider) — off = drag selects text",
-		"  ?            this help             q / Ctrl-C  quit (saves)",
+		sec(i18n.T("help.view")),
+		i18n.T("help.view.filter"),
+		i18n.T("help.view.sort"),
+		i18n.T("help.view.mouse"),
+		i18n.T("help.view.help"),
 		"",
-		sec("Mouse") + "  click rows/tabs/buttons · wheel scroll · drag the divider to resize",
+		sec(i18n.T("help.mouse")) + i18n.T("help.mouse.desc"),
 		"",
-		th.muted().Render("press ? or Esc to close"),
+		th.muted().Render(i18n.T("help.footer")),
 	}, "\n")
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

@@ -5,6 +5,7 @@ import (
 	zone "github.com/lrstanley/bubblezone"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 )
 
 // renderStatus renders exactly one row of width w.
@@ -39,7 +40,7 @@ func (m Model) renderStatus(vm app.StatusVM, w int) string {
 	// on each button; the whole `[s Start]` chip is also a mouse-click zone.
 	btns := []string{zone.Mark("btn:actions", th.accent().Render("a→"))}
 	for _, b := range vm.Buttons {
-		label := "[" + th.accent().Render(buttonKey[b]) + " " + b + "]"
+		label := "[" + th.accent().Render(buttonKey[b]) + " " + i18n.T("btn."+b) + "]"
 		btns = append(btns, zone.Mark("btn:"+b, label))
 	}
 	line := lipgloss.JoinHorizontal(lipgloss.Top, btns...)
