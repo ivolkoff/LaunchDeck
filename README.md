@@ -20,8 +20,34 @@ Requires macOS (`launchctl` on `PATH`) and Go 1.24+.
 ./launchdeck
 ```
 
-Session state (selection, filter, domain scope, sort, list scroll, active tab)
-is saved to `~/.config/launchdeck/session.json` and restored on next launch.
+Session state (selection, filter, domain scope, sort, list scroll, active tab,
+sidebar width) is saved to `~/.config/launchdeck/session.json` and restored on
+next launch. The **Logs** tab live-updates (re-reads the tail each ~2s poll,
+newest first).
+
+## Colors (theme)
+
+Colors are configurable via `~/.config/launchdeck/theme.json`. The file is
+optional — any omitted field falls back to the built-in palette, and a missing
+or malformed file uses all defaults. Each value is a color lipgloss understands
+(a 256-color index like `"42"` or a hex like `"#8be9fd"`):
+
+```json
+{
+  "border": "240",
+  "selected_fg": "231",
+  "selected_bg": "62",
+  "running": "42",
+  "stopped": "244",
+  "gone": "203",
+  "tab_active_fg": "231",
+  "tab_active_bg": "62",
+  "gutter_fg": "250",
+  "gutter_bg": "238",
+  "accent": "213",
+  "muted": "244"
+}
+```
 
 ## Keymap
 
@@ -50,8 +76,12 @@ otherwise.
 
 Inside the action picker: `s` Start, `r` Restart, `k` Stop, `e` Enable,
 `d` Disable, `u` Unload; `↑`/`↓` move the highlight, `Enter` picks it, `Esc`
-cancels. Mouse users can click sidebar rows, detail tabs, and the status-bar
-action buttons instead of using keys.
+cancels. The status bar shows these keys on each button (`a→[s Start]…`).
+
+Mouse users can click sidebar rows, detail tabs, and the status-bar action
+buttons instead of using keys, scroll with the wheel, and **drag the divider**
+between the sidebar and detail panel to resize them (the panels won't shrink
+below a safe minimum).
 
 ## Manual sudo checklist
 
@@ -77,7 +107,7 @@ verified by hand rather than by an automated test:
       alt-screen), the app does **not** quit, `pendingSudo` clears, and state
       is otherwise unchanged.
 
-Also worth a spot-check: the system-domain **enumeration** banner ("system
-requires sudo to enumerate — Retry with sudo") and its own Retry/cancel path,
-and the per-service **inspect** retry (a system row's detail shows "requires
-sudo to inspect" → Retry with sudo → parses into the Metadata/Raw tabs).
+Note: only explicit **actions** offer a sudo retry. Inspecting a `system`
+service you can't read shows a non-modal "requires sudo to inspect — run
+launchdeck with sudo" in the detail panel; enumerating system services without
+root simply omits them (run the whole app under `sudo` to see them).
