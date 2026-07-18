@@ -88,7 +88,15 @@ type Quit struct{ base }
 // scroll using the same numbers render() draws with.
 type WindowResized struct {
 	base
+	Width                       int
 	ListViewportH, LogViewportH int
+}
+
+// SetSidebarWidth requests a new sidebar outer width (from a divider drag). The
+// reduce clamps it to a safe range against the current terminal width.
+type SetSidebarWidth struct {
+	base
+	W int
 }
 
 type ServicesLoaded struct {

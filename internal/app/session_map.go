@@ -19,17 +19,21 @@ func FromSession(sess session.Session, uid int) AppState {
 	if sess.ListScroll > 0 {
 		s.Scroll.List = sess.ListScroll
 	}
+	if sess.SidebarWidth > 0 {
+		s.SidebarWidth = sess.SidebarWidth // clamped once the first WindowResized lands
+	}
 	return s
 }
 
 func ToSession(s AppState) session.Session {
 	return session.Session{
-		Selected:    s.Selected,
-		TextPattern: s.Filters.TextPattern,
-		DomainScope: int(s.Filters.DomainScope),
-		SortKey:     int(s.SortKey),
-		SortDesc:    s.SortDesc,
-		ListScroll:  s.Scroll.List,
-		ActiveTab:   int(s.ActiveTab),
+		Selected:     s.Selected,
+		TextPattern:  s.Filters.TextPattern,
+		DomainScope:  int(s.Filters.DomainScope),
+		SortKey:      int(s.SortKey),
+		SortDesc:     s.SortDesc,
+		ListScroll:   s.Scroll.List,
+		ActiveTab:    int(s.ActiveTab),
+		SidebarWidth: s.SidebarWidth,
 	}
 }

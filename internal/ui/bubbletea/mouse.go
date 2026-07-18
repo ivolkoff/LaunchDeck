@@ -17,6 +17,21 @@ func modalOpen(s app.AppState) bool {
 }
 
 func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
+	// Divider drag is handled before the modal guard: a release must always end a
+	// drag, and a drag isn't a modal.
+	switch msg.Action {
+	case tea.MouseActionMotion:
+		if m.dragging {
+			// The divider follows the cursor: the sidebar's outer width becomes the
+			// cursor column. reduce clamps it to a safe range.
+			return m.applyIntent(app.SetSidebarWidth{W: msg.X})
+		}
+		return m, nil
+	case tea.MouseActionRelease:
+		m.dragging = false
+		return m, nil
+	}
+
 	if modalOpen(m.st) {
 		return m, nil // mouse is modal-suppressed
 	}
@@ -29,6 +44,11 @@ func (m Model) handleMouse(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	case tea.MouseButtonWheelDown:
 		return m.applyIntent(app.ScrollMsg{Panel: m.hoveredPanel(msg), Delta: 3})
 	case tea.MouseButtonLeft:
+		// A 1-col divider is a hard target, so grab within ±1 of its column.
+		if abs(msg.X-m.sidebarW()) <= 1 {
+			m.dragging = true
+			return m.applyIntent(app.SetSidebarWidth{W: msg.X})
+		}
 		if label, ok := m.hitRow(msg); ok {
 			return m.applyIntent(app.SelectService{Label: label})
 		}
@@ -105,4 +125,11 @@ func actionByName(n string) launchctl.ActionKind {
 	default:
 		return launchctl.ActionStart
 	}
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	}
+	return n
 }

@@ -428,3 +428,40 @@ func TestSelectClearsActionStatus(t *testing.T) {
 		t.Fatalf("action status should clear on selecting another service, got %q", s.StatusMsg)
 	}
 }
+
+func TestClampSidebar(t *testing.T) {
+	// auto (0) preserved
+	if got := clampSidebar(0, 120); got != 0 {
+		t.Errorf("auto should stay 0, got %d", got)
+	}
+	// below min -> min
+	if got := clampSidebar(5, 120); got != MinSidebarWidth {
+		t.Errorf("below min: got %d want %d", got, MinSidebarWidth)
+	}
+	// too wide -> leaves room for detail + divider
+	if got := clampSidebar(200, 100); got != 100-MinDetailWidth-1 {
+		t.Errorf("over max: got %d want %d", got, 100-MinDetailWidth-1)
+	}
+	// tiny terminal -> pinned to min (never negative)
+	if got := clampSidebar(50, 30); got != MinSidebarWidth {
+		t.Errorf("tiny term: got %d want %d", got, MinSidebarWidth)
+	}
+	// in-range passes through
+	if got := clampSidebar(40, 120); got != 40 {
+		t.Errorf("in range: got %d want 40", got)
+	}
+}
+
+func TestSetSidebarWidthClampsAgainstTerm(t *testing.T) {
+	s := NewState(501)
+	s = Reduce(WindowResized{Width: 100, ListViewportH: 20, LogViewportH: 18}, s)
+	s = Reduce(SetSidebarWidth{W: 999}, s) // absurd drag
+	if s.SidebarWidth != 100-MinDetailWidth-1 {
+		t.Fatalf("drag should clamp to leave detail room: got %d", s.SidebarWidth)
+	}
+	// a later shrink re-clamps the stored width
+	s = Reduce(WindowResized{Width: 60, ListViewportH: 20, LogViewportH: 18}, s)
+	if s.SidebarWidth > 60-MinDetailWidth-1 {
+		t.Fatalf("resize should re-clamp sidebar: got %d", s.SidebarWidth)
+	}
+}

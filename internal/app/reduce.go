@@ -66,10 +66,15 @@ func Reduce(m Msg, s AppState) AppState {
 		}
 		return s
 	case WindowResized:
+		s.TermWidth = msg.Width
 		s.ListViewportH = clampMin1(msg.ListViewportH)
 		s.LogViewportH = clampMin1(msg.LogViewportH)
+		s.SidebarWidth = clampSidebar(s.SidebarWidth, s.TermWidth) // re-clamp on resize
 		s.Scroll.List = clampScrollList(s.Scroll.List, len(s.visible()), s.ListViewportH)
 		s.Scroll.Log = clampMin0(s.Scroll.Log)
+		return s
+	case SetSidebarWidth:
+		s.SidebarWidth = clampSidebar(msg.W, s.TermWidth)
 		return s
 	case OpenFilter:
 		s.FilterEditing = true
@@ -288,6 +293,35 @@ func clampMin0(n int) int {
 		return 0
 	}
 	return n
+}
+
+// Minimum outer widths for the two panels — a divider drag can't shrink either
+// below these, so neither pane ever becomes unusably narrow.
+const (
+	MinSidebarWidth = 16
+	MinDetailWidth  = 24
+)
+
+// clampSidebar bounds a requested sidebar outer width to a safe range against
+// the terminal width. 0 (auto) is preserved. When the terminal is too narrow to
+// honour both minimums, it pins the sidebar to its minimum.
+func clampSidebar(w, termW int) int {
+	if w == 0 {
+		return 0 // auto: renderer falls back to a third
+	}
+	if w < MinSidebarWidth {
+		w = MinSidebarWidth
+	}
+	if termW > 0 {
+		max := termW - MinDetailWidth - 1 // 1 col for the divider
+		if max < MinSidebarWidth {
+			max = MinSidebarWidth
+		}
+		if w > max {
+			w = max
+		}
+	}
+	return w
 }
 
 func clampMin1(n int) int {

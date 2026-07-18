@@ -9,13 +9,14 @@ import (
 )
 
 type Session struct {
-	Selected    string `json:"selected"`
-	TextPattern string `json:"text_pattern"`
-	DomainScope int    `json:"domain_scope"`
-	SortKey     int    `json:"sort_key"`
-	SortDesc    bool   `json:"sort_desc"`
-	ListScroll  int    `json:"list_scroll"`
-	ActiveTab   int    `json:"active_tab"`
+	Selected     string `json:"selected"`
+	TextPattern  string `json:"text_pattern"`
+	DomainScope  int    `json:"domain_scope"`
+	SortKey      int    `json:"sort_key"`
+	SortDesc     bool   `json:"sort_desc"`
+	ListScroll   int    `json:"list_scroll"`
+	ActiveTab    int    `json:"active_tab"`
+	SidebarWidth int    `json:"sidebar_width"`
 }
 
 func Path() (string, error) {

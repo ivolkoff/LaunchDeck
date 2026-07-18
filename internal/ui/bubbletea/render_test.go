@@ -279,3 +279,45 @@ func TestLogScrollMovesWindow(t *testing.T) {
 		t.Errorf("log scroll did nothing: still at %s", before)
 	}
 }
+
+// TestDividerDragResizesSidebar drives real mouse messages: press near the
+// divider, drag left, and assert the sidebar width shrinks and is clamped to a
+// safe minimum (never collapses the panels).
+func TestDividerDragResizesSidebar(t *testing.T) {
+	st := stateWithLogs(20, 0, 0, app.TabMetadata)
+	md := driveSized(st, 100, 30)
+	auto := md.sidebarW() // ~33 for width 100
+
+	// Press on the divider column, then drag to a narrower X.
+	next, _ := md.Update(tea.MouseMsg{Action: tea.MouseActionPress, Button: tea.MouseButtonLeft, X: auto, Y: 5})
+	md = next.(Model)
+	if !md.dragging {
+		t.Fatalf("press on divider (col %d) should start a drag", auto)
+	}
+	next, _ = md.Update(tea.MouseMsg{Action: tea.MouseActionMotion, Button: tea.MouseButtonLeft, X: 25, Y: 5})
+	md = next.(Model)
+	if md.st.SidebarWidth != 25 {
+		t.Errorf("drag to X=25 should set sidebar width 25, got %d", md.st.SidebarWidth)
+	}
+
+	// Drag way past the minimum: it must pin, not collapse.
+	next, _ = md.Update(tea.MouseMsg{Action: tea.MouseActionMotion, Button: tea.MouseButtonLeft, X: 1, Y: 5})
+	md = next.(Model)
+	if md.st.SidebarWidth != app.MinSidebarWidth {
+		t.Errorf("drag past min should pin at %d, got %d", app.MinSidebarWidth, md.st.SidebarWidth)
+	}
+
+	// Release ends the drag; a later motion doesn't resize.
+	next, _ = md.Update(tea.MouseMsg{Action: tea.MouseActionRelease, X: 1, Y: 5})
+	md = next.(Model)
+	if md.dragging {
+		t.Error("release should end the drag")
+	}
+	pinned := md.st.SidebarWidth
+	next, _ = md.Update(tea.MouseMsg{Action: tea.MouseActionMotion, X: 50, Y: 5})
+	md = next.(Model)
+	if md.st.SidebarWidth != pinned {
+		t.Errorf("motion after release should not resize: %d -> %d", pinned, md.st.SidebarWidth)
+	}
+	_ = auto
+}

@@ -21,6 +21,7 @@ type Model struct {
 	width     int
 	height    int
 	pollBusy  bool
+	dragging  bool            // divider drag in progress
 	lastSaved session.Session // debounce marker: last state written to disk
 }
 
@@ -52,7 +53,7 @@ func (m Model) Update(raw tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		listH, logH := viewportHeights(m.height)
-		m.st = app.Reduce(app.WindowResized{ListViewportH: listH, LogViewportH: logH}, m.st)
+		m.st = app.Reduce(app.WindowResized{Width: msg.Width, ListViewportH: listH, LogViewportH: logH}, m.st)
 		return m, nil
 	case tea.KeyMsg:
 		return m.handleKey(msg)

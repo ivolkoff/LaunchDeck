@@ -107,6 +107,8 @@ type AppState struct {
 	Scroll        Scroll
 	ListViewportH int // rows of sidebar content visible (set by WindowResized)
 	LogViewportH  int // rows of detail body content visible (set by WindowResized)
+	TermWidth     int // terminal columns (set by WindowResized); 0 before first size
+	SidebarWidth  int // user-dragged sidebar outer width; 0 = auto (a third)
 	Focus         Focus
 	ActiveTab     Tab
 

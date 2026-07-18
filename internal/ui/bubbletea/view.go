@@ -20,7 +20,7 @@ func (m Model) render() string {
 			"terminal too small (need ≥60×20)")
 	}
 	vm := app.Derive(m.st)
-	sidebarW := sidebarWidth(m.width)
+	sidebarW := m.sidebarW()
 	detailW := m.width - sidebarW - 1
 	bodyH := m.height - 1 // status row
 
@@ -71,18 +71,27 @@ func clampInt(v, lo, hi int) int {
 	return v
 }
 
-// sidebarWidth is the sidebar's outer column budget for a terminal of the given
-// width: a third, clamped to [24, 48].
-func sidebarWidth(width int) int {
+// sidebarWidthAuto is the default sidebar outer width (a third, clamped to
+// [24, 48]) used when the user hasn't dragged the divider.
+func sidebarWidthAuto(width int) int {
 	return clampInt(int(float64(width)*0.33), 24, 48)
+}
+
+// sidebarW is the sidebar's actual outer width: the user-dragged width if set
+// (reduce keeps it clamped to a safe range), else the auto third.
+func (m Model) sidebarW() int {
+	if m.st.SidebarWidth > 0 {
+		return m.st.SidebarWidth
+	}
+	return sidebarWidthAuto(m.width)
 }
 
 // detailContentW is the inner (inside-border) column budget of the detail panel
 // — the width the log/raw body is wrapped to. Kept in sync with render()'s own
 // sidebar/detail split so the scroll clamp wraps to exactly what is drawn.
-func detailContentW(width int) int {
+func (m Model) detailContentW() int {
 	frame := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).GetHorizontalFrameSize()
-	w := width - sidebarWidth(width) - 1 - frame
+	w := m.width - m.sidebarW() - 1 - frame
 	if w < 1 {
 		w = 1
 	}
@@ -98,7 +107,7 @@ func (m Model) clampLogScroll() int {
 		return 0
 	}
 	_, logH := viewportHeights(m.height)
-	lines := len(detailLines(vm.Detail, detailContentW(m.width), m.theme))
+	lines := len(detailLines(vm.Detail, m.detailContentW(), m.theme))
 	maxStart := lines - logH
 	if maxStart < 0 {
 		maxStart = 0
