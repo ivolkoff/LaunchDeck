@@ -68,6 +68,24 @@ func versionString() string {
 	return buildVersion(version, info.Main.Version, rev, modified, true)
 }
 
+// helpText is the hand-written --help output (not flag.PrintDefaults, which
+// writes to stderr and dumps -h/-v default-value noise).
+func helpText() string {
+	return `launchdeck — a macOS launchctl services TUI
+
+Usage: launchdeck [flags]
+
+Flags:
+  -h, --help     show this help and exit
+  -v, --version  print the version and exit
+
+Config files:
+  ~/.config/launchdeck/session.json   restored UI session
+  ~/.config/launchdeck/theme.json     colours and header toggle
+
+Press ? inside the app for the full keymap.`
+}
+
 func main() {
 	if runtime.GOOS != "darwin" {
 		fmt.Fprintln(os.Stderr, "launchdeck: macOS only")

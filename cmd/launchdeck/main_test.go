@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestBuildVersion(t *testing.T) {
 	sha := "0123456789abcdef0123456789abcdef01234567" // 40 chars
@@ -21,6 +24,20 @@ func TestBuildVersion(t *testing.T) {
 	for _, c := range cases {
 		if got := buildVersion(c.version, c.mainVer, c.rev, c.modified, c.hasInfo); got != c.want {
 			t.Errorf("%s: buildVersion = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestHelpText(t *testing.T) {
+	h := helpText()
+	for _, want := range []string{
+		"Usage: launchdeck [flags]",
+		"~/.config/launchdeck/session.json",
+		"~/.config/launchdeck/theme.json",
+		"Press ?",
+	} {
+		if !strings.Contains(h, want) {
+			t.Errorf("helpText missing %q", want)
 		}
 	}
 }
