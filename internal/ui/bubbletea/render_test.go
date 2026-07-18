@@ -201,6 +201,33 @@ func TestLogScrollNoRunaway(t *testing.T) {
 	}
 }
 
+// TestSidebarRowsDoNotWrap guards that long service labels stay on one row each
+// (the box is exactly w x h) — the sidebar padding must be accounted for in the
+// row width, or near-full-width labels wrap and shift the rows below.
+func TestSidebarRowsDoNotWrap(t *testing.T) {
+	rows := make([]app.RowVM, 10)
+	for i := range rows {
+		rows[i] = app.RowVM{
+			Label:    fmt.Sprintf("com.apple.some.long.service.name.number%02d.agent", i),
+			Running:  i%2 == 0,
+			Selected: i == 3,
+		}
+	}
+	vm := app.ListVM{Rows: rows}
+	m := New(app.NewState(501), nil)
+	m.Init()
+	for _, w := range []int{20, 24, 30, 40, 48} {
+		h := 14
+		out := m.renderList(vm, w, h)
+		if bw := lipgloss.Width(out); bw != w {
+			t.Errorf("width %d: box width %d (want exactly %d)", w, bw, w)
+		}
+		if lines := len(strings.Split(out, "\n")); lines != h {
+			t.Errorf("width %d: box height %d (want %d) — rows wrapped", w, lines, h)
+		}
+	}
+}
+
 // TestRawTabHasLineNumbers asserts the Raw tab renders an editor-style
 // line-number gutter (1, 2, 3, …) down the left of the dump.
 func TestRawTabHasLineNumbers(t *testing.T) {

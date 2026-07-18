@@ -17,15 +17,21 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(th.border()).
 		Padding(0, 1)
-	contentW := w - style.GetHorizontalFrameSize()
+	// lipgloss Width() INCLUDES padding, so set it to w minus the border only;
+	// the actual text area is w minus the whole frame (border + padding).
+	contentW := w - style.GetHorizontalFrameSize() // text area
+	styleW := w - style.GetHorizontalBorderSize()  // what Width() wants
 	contentH := h - style.GetVerticalFrameSize()
 	if contentW < 1 {
 		contentW = 1
 	}
+	if styleW < 1 {
+		styleW = 1
+	}
 	if contentH < 1 {
 		contentH = 1
 	}
-	style = style.Width(contentW).Height(contentH)
+	style = style.Width(styleW).Height(contentH)
 	if vm.Placeholder != "" {
 		return style.Render(th.muted().Render(vm.Placeholder))
 	}
@@ -36,15 +42,18 @@ func (m Model) renderList(vm app.ListVM, w, h int) string {
 		if r.Running {
 			dot, dotStyle = "●", th.running()
 		}
-		label := ellipsize(r.Label, contentW-2)
+		// Reserve 3 cols for the marker: the ●/○ glyph is ambiguous-width and may
+		// render as 2 cells in some terminals — reserving an extra col keeps the
+		// row on one line instead of wrapping and shifting the rows below it.
+		label := ellipsize(r.Label, contentW-3)
 		line := dotStyle.Render(dot) + " " + label
 		if r.Gone {
 			line += th.gone().Render(" (gone)")
 		}
 		if r.Selected {
-			// Fill the row to the content width so the highlight spans it evenly,
-			// then the box's padding gives the gap from the border.
-			line = th.sel().Width(contentW).Render(dot + " " + label)
+			// Fill to one under the text width so the highlight spans the row while
+			// leaving the reserved marker col — the box padding gives the border gap.
+			line = th.sel().Width(contentW - 1).Render(dot + " " + label)
 		}
 		b = append(b, zone.Mark("row:"+r.Label, line))
 	}
