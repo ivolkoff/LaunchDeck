@@ -16,6 +16,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/volkoffskij/launchdeck/internal/app"
+	"github.com/volkoffskij/launchdeck/internal/config"
+	"github.com/volkoffskij/launchdeck/internal/i18n"
 	"github.com/volkoffskij/launchdeck/internal/launchctl"
 	"github.com/volkoffskij/launchdeck/internal/session"
 	ui "github.com/volkoffskij/launchdeck/internal/ui/bubbletea"
@@ -85,6 +87,7 @@ Flags:
 Config files:
   ~/.config/launchdeck/session.json   restored UI session
   ~/.config/launchdeck/theme.json     colours and header toggle
+  ~/.config/launchdeck/config.json    language ("lang": "ru" | "en"; auto if absent)
 
 Press ? inside the app for the full keymap.`
 }
@@ -150,6 +153,12 @@ func startTUI() int {
 		fmt.Fprintln(os.Stderr, "launchdeck: launchctl not found in PATH")
 		return 1
 	}
+
+	cfg := config.Config{}
+	if p, err := config.Path(); err == nil {
+		cfg = config.Load(p)
+	}
+	i18n.SetLang(i18n.Detect(os.Getenv, cfg.Lang))
 
 	uid := os.Getuid()
 	var st app.AppState

@@ -49,6 +49,22 @@ or malformed file uses all defaults. Each value is a color lipgloss understands
 }
 ```
 
+## Language
+
+The interface is available in English and Russian. The language is picked at
+startup: `~/.config/launchdeck/config.json` wins if it sets one, otherwise it
+is auto-detected from `$LC_ALL` / `$LANG` / `$LANGUAGE` (a `ru*` locale selects
+Russian; anything else is English).
+
+```json
+{
+  "lang": "ru"
+}
+```
+
+`lang` accepts `"ru"` or `"en"`. Omit the file (or the field) to auto-detect.
+The CLI `--help`/`--version` output stays English.
+
 ## Keymap
 
 While a modal (filter input, load prompt, action picker, confirm, sudo-retry)

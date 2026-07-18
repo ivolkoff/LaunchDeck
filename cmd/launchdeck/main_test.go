@@ -42,6 +42,9 @@ func TestHelpText(t *testing.T) {
 			t.Errorf("helpText missing %q", want)
 		}
 	}
+	if !strings.Contains(h, "config.json") {
+		t.Errorf("help text should mention config.json")
+	}
 }
 
 func TestCrashMessage(t *testing.T) {
