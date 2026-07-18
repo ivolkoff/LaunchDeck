@@ -1,6 +1,7 @@
 package app
 
 import (
+	"regexp"
 	"sort"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func applyFilter(in []launchctl.Service, f Filters, uid int) []launchctl.Service {
-	pat := strings.ToLower(f.TextPattern)
+	match := labelMatcher(f.TextPattern)
 	out := make([]launchctl.Service, 0, len(in))
 	for _, s := range in {
 		switch f.DomainScope {
@@ -21,12 +22,28 @@ func applyFilter(in []launchctl.Service, f Filters, uid int) []launchctl.Service
 				continue
 			}
 		}
-		if pat != "" && !strings.Contains(strings.ToLower(s.Label), pat) {
+		if !match(s.Label) {
 			continue
 		}
 		out = append(out, s)
 	}
 	return out
+}
+
+// labelMatcher builds the label predicate for a filter pattern. An empty pattern
+// matches everything. A pattern that compiles as a regexp is matched as a
+// case-insensitive regexp; a pattern that does not compile (e.g. a half-typed
+// "(" while the user is still typing) falls back to a case-insensitive substring
+// match, so live typing never errors out.
+func labelMatcher(pattern string) func(string) bool {
+	if pattern == "" {
+		return func(string) bool { return true }
+	}
+	if re, err := regexp.Compile("(?i)" + pattern); err == nil {
+		return re.MatchString
+	}
+	low := strings.ToLower(pattern)
+	return func(label string) bool { return strings.Contains(strings.ToLower(label), low) }
 }
 
 // labelLess is the canonical secondary order: case-insensitive, then bytewise.

@@ -24,7 +24,14 @@ func NewState(uid int) AppState {
 
 // visible applies the current filter+sort — the rows the user actually sees.
 func (s AppState) visible() []launchctl.Service {
-	return applySort(applyFilter(s.Services, s.Filters, s.UID), s.SortKey, s.SortDesc)
+	f := s.Filters
+	if s.FilterEditing {
+		// Live preview: while the filter input is open, narrow by the in-progress
+		// buffer instead of the last committed pattern. Cancelling (Esc) leaves the
+		// committed pattern untouched, so the list snaps back to it.
+		f.TextPattern = s.FilterBuffer
+	}
+	return applySort(applyFilter(s.Services, f, s.UID), s.SortKey, s.SortDesc)
 }
 
 func containsLabel(svcs []launchctl.Service, label string) bool {

@@ -73,7 +73,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.applyIntent(app.SetTab{Tab: nextTab(st.ActiveTab)})
 	case "a":
 		return m.applyIntent(app.OpenActionPicker{})
-	case "/":
+	case "/", "f":
 		return m.applyIntent(app.OpenFilter{})
 	case "d":
 		return m.applyIntent(app.CycleDomainScope{})
