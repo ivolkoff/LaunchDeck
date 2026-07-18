@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"runtime/debug"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -16,6 +17,56 @@ import (
 	"github.com/volkoffskij/launchdeck/internal/session"
 	ui "github.com/volkoffskij/launchdeck/internal/ui/bubbletea"
 )
+
+// version is overridden at build time via -ldflags "-X main.version=<tag>".
+var version = "dev"
+
+// buildVersion assembles the version line from the ldflags-injected version plus
+// build-info values. It is pure so it can be table-tested. The returned string is
+// already prefixed with "launchdeck ".
+func buildVersion(version, mainVer, rev string, modified, hasInfo bool) string {
+	if version != "dev" {
+		return "launchdeck " + version
+	}
+	if hasInfo {
+		if mainVer != "" && mainVer != "(devel)" {
+			return "launchdeck " + mainVer // module-proxy install: go install <module>@<ver>
+		}
+		if rev != "" {
+			r := rev
+			if len(r) > 12 {
+				r = r[:12]
+			}
+			if modified {
+				r += "-dirty"
+			}
+			return "launchdeck dev (" + r + ")"
+		}
+	}
+	return "launchdeck dev"
+}
+
+// versionString reads the real build info and delegates to buildVersion.
+func versionString() string {
+	if version != "dev" {
+		return buildVersion(version, "", "", false, false)
+	}
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return buildVersion(version, "", "", false, false)
+	}
+	var rev string
+	var modified bool
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			rev = s.Value
+		case "vcs.modified":
+			modified = s.Value == "true"
+		}
+	}
+	return buildVersion(version, info.Main.Version, rev, modified, true)
+}
 
 func main() {
 	if runtime.GOOS != "darwin" {
