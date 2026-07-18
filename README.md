@@ -8,6 +8,8 @@ enable/disable/load/unload actions — with mouse support and session restore.
 
 Single static Go binary, no background daemon.
 
+![LaunchDeck demo](docs/demo.gif)
+
 ## Install
 
 With Go 1.24+ on macOS:
